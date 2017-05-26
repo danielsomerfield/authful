@@ -7,11 +7,11 @@ import (
 )
 
 type AuthorizeRequest struct {
-	RequestType string
-	ClientId    string
-	RedirectURI string
-	Scope       string
-	State       string
+	ResponseType string
+	ClientId     string
+	RedirectURI  string
+	Scope        string
+	State        string
 }
 
 type ParseError struct {
@@ -22,7 +22,7 @@ func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
 	authorizeRequest := AuthorizeRequest{}
 
 	fields := map[string]*mapping{
-		"request_type": required(&authorizeRequest.RequestType),
+		"response_type": required(&authorizeRequest.ResponseType),
 		"client_id":    required(&authorizeRequest.ClientId),
 		"redirect_uri": optional(&authorizeRequest.RedirectURI),
 		"scope":        optional(&authorizeRequest.Scope),

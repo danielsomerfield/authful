@@ -10,21 +10,21 @@ func TestAuthorizeRequestWithMissingFields(t *testing.T) {
 	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{})
 	if authorizationRequest != nil {
 		t.Error("Expected parse error, not request")
-	} else if !reflect.DeepEqual(parseFailure.MissingFields, []string{"client_id", "request_type"}) {
+	} else if !reflect.DeepEqual(parseFailure.MissingFields, []string{"client_id", "response_type"}) {
 		t.Errorf("Missing fields were %s", parseFailure.MissingFields)
 	}
 }
 
 func TestAuthorizeRequestWithOnlyRequiredFields(t *testing.T) {
 	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{
-		"request_type": []string{"code"},
+		"response_type": []string{"code"},
 		"client_id":    []string{"cid"},
 	})
 	if parseFailure != nil {
 		t.Error("No error expected")
 	} else if *authorizationRequest != (AuthorizeRequest{
-		RequestType: "code",
-		ClientId:    "cid",
+		ResponseType: "code",
+		ClientId:     "cid",
 	}) {
 		t.Errorf("Authorization request looks like this: %+v", authorizationRequest)
 	}
@@ -32,7 +32,7 @@ func TestAuthorizeRequestWithOnlyRequiredFields(t *testing.T) {
 
 func TestAuthorizeRequestWithOptionalFields(t *testing.T) {
 	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{
-		"request_type": []string{"code"},
+		"response_type": []string{"code"},
 		"client_id":    []string{"cid"},
 		"redirect_uri":    []string{"http://blah"},
 		"scope":    []string{"the scope"},
@@ -41,11 +41,11 @@ func TestAuthorizeRequestWithOptionalFields(t *testing.T) {
 	if parseFailure != nil {
 		t.Error("No error expected")
 	} else if *authorizationRequest != (AuthorizeRequest{
-		RequestType: "code",
-		ClientId:    "cid",
-		RedirectURI:    "http://blah",
-		Scope: "the scope",
-		State: "the state",
+		ResponseType: "code",
+		ClientId:     "cid",
+		RedirectURI:  "http://blah",
+		Scope:        "the scope",
+		State:        "the state",
 	}) {
 		t.Errorf("Authorization request looks like this: %+v", authorizationRequest)
 	}
