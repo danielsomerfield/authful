@@ -1,57 +1,33 @@
 package main
 
 import (
-	"net/http"
 	"testing"
+	"github.com/danielsomerfield/authful/testutils"
 	"io/ioutil"
-	"encoding/json"
-	"authful/server"
-	"fmt"
-	"time"
+	"net/http"
 )
 
-func TestMain(t *testing.T) {
-	authServer := server.NewAuthServer()
+func TestAuthorize(t *testing.T) {
 
-	go authServer.Start()
-
-	defer authServer.Stop()
-	healthcheck, err := waitForServer(authServer)
-
-	if err != nil {
-		t.Error(err)
-	} else if healthcheck.Status != "ok" {
-		t.Errorf("Message should have been 'ok' but was %s", healthcheck.Status)
-	}
-}
-
-func waitForServer(server *server.AuthServer) (HealthCheck, error) {
-
-	var err error = nil
 	var resp *http.Response = nil
-	var healthcheck HealthCheck
+	var err error = nil
 	var body []byte
 
-	for i := 0; i < 1000; i++ {
-		resp, err = http.Get("http://localhost:8080/health")
+	err = testutils.RunServer()
+	defer testutils.StopServer()
 
-		if err == nil {
-			if resp.StatusCode == 200 {
-				body, err = ioutil.ReadAll(resp.Body)
-				if err == nil {
-					err = json.Unmarshal(body, &healthcheck)
-					return healthcheck, err
-				}
-			} else {
-				err = fmt.Errorf("Expected status code 200 but was %s", resp.StatusCode)
+	resp, err = http.Get("http://localhost:8080/authorize?request_type=code")
+
+	if err == nil {
+		if resp.StatusCode == 200 {
+			body, err = ioutil.ReadAll(resp.Body)
+			if err == nil {
+				print(string(body))
 			}
+		} else {
+			t.Errorf("Expected status code 200 but was %s", resp.StatusCode)
 		}
-		time.Sleep(500 * time.Millisecond)
+	} else {
+
 	}
-
-	return healthcheck, err
-}
-
-type HealthCheck struct {
-	Status string `json:"status"`
 }
