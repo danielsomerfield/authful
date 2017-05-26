@@ -29,3 +29,20 @@ func TestAuthorizeRequestWithOnlyRequiredFields(t *testing.T) {
 		t.Errorf("Authorization request looks like this: %+v", authorizationRequest)
 	}
 }
+
+func TestAuthorizeRequestWithOptionalFields(t *testing.T) {
+	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{
+		"request_type": []string{"code"},
+		"client_id":    []string{"cid"},
+		"redirect_uri":    []string{"http://blah"},
+	})
+	if parseFailure != nil {
+		t.Error("No error expected")
+	} else if *authorizationRequest != (AuthorizeRequest{
+		RequestType: "code",
+		ClientId:    "cid",
+		RedirectURI:    "http://blah",
+	}) {
+		t.Errorf("Authorization request looks like this: %+v", authorizationRequest)
+	}
+}
