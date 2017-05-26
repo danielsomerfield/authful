@@ -9,22 +9,23 @@ import (
 type AuthorizeRequest struct {
 	RequestType string
 	ClientId    string
+	RedirectURI string
 }
 
 type ParseError struct {
 	MissingFields    []string
-	UnexpectedFields [] string
 }
 
 func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
 	authorizeRequest := AuthorizeRequest{}
 
-	fields := map[string]*string{
-		"request_type": &authorizeRequest.RequestType,
-		"client_id":    &authorizeRequest.ClientId,
+	fields := map[string]*mapping{
+		"request_type": required(&authorizeRequest.RequestType),
+		"client_id":    required(&authorizeRequest.ClientId),
+		"redirect_uri": optional(&authorizeRequest.RedirectURI),
 	}
 
-	parseError := ParseRequest(values, authorizeRequest, fields)
+	parseError := ParseRequest(values, fields)
 
 	if parseError != nil {
 		return nil, parseError
@@ -33,14 +34,32 @@ func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
 	}
 }
 
-func ParseRequest(values url.Values, request interface{}, fields map[string]*string) *ParseError {
+func required(field *string) *mapping {
+	return & mapping {
+		field: field,
+		required: true,
+	}
+}
+
+func optional(field *string) *mapping {
+	return & mapping {
+		field: field,
+		required: false,
+	}
+}
+
+type mapping struct {
+	field* string
+	required bool
+}
+
+func ParseRequest(values url.Values, fields map[string]*mapping) *ParseError {
 	parseError := ParseError{
 		MissingFields:    []string{},
-		UnexpectedFields: []string{},
 	}
 
-	for key, value := range fields {
-		setValueOnRequest(key, values, &parseError, value)
+	for key, mapping := range fields {
+		setValueOnRequest(key, values, &parseError, mapping)
 	}
 
 	if len(parseError.MissingFields) > 0 {
@@ -51,10 +70,10 @@ func ParseRequest(values url.Values, request interface{}, fields map[string]*str
 	}
 }
 
-func setValueOnRequest(fieldName string, values url.Values, parseError *ParseError, field *string) {
+func setValueOnRequest(fieldName string, values url.Values, parseError *ParseError, field *mapping) {
 	value := values.Get(fieldName)
-	if strings.TrimSpace(value) == "" {
+	if strings.TrimSpace(value) == "" && field.required {
 		parseError.MissingFields = append(parseError.MissingFields, fieldName)
 	}
-	*field = value
+	*field.field = value
 }

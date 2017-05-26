@@ -15,7 +15,7 @@ func TestAuthorizeRequestWithMissingFields(t *testing.T) {
 	}
 }
 
-func TestAuthorizeRequestWithRequiredFields(t *testing.T) {
+func TestAuthorizeRequestWithOnlyRequiredFields(t *testing.T) {
 	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{
 		"request_type": []string{"code"},
 		"client_id":    []string{"cid"},
@@ -28,18 +28,4 @@ func TestAuthorizeRequestWithRequiredFields(t *testing.T) {
 	}) {
 		t.Errorf("Authorization request looks like this: %+v", authorizationRequest)
 	}
-
 }
-
-//func TestAuthorizeRequestWithExtraFields(t *testing.T) {
-//	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{
-//		"request_type":[]string{"code"},
-//		"client_id":[]string{"cid"},
-//		"unknown":[]string{"unknown-value"},
-//	})
-//	if authorizationRequest != nil {
-//		t.Error("Expected parse error, not request")
-//	} else if !reflect.DeepEqual(parseFailure.unexpectedFields, []string{"unknown",}){
-//		t.Errorf("Missing fields were %s", parseFailure.missingFields)
-//	}
-//}
