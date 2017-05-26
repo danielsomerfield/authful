@@ -35,6 +35,8 @@ func TestAuthorizeRequestWithOptionalFields(t *testing.T) {
 		"request_type": []string{"code"},
 		"client_id":    []string{"cid"},
 		"redirect_uri":    []string{"http://blah"},
+		"scope":    []string{"the scope"},
+		"state":    []string{"the state"},
 	})
 	if parseFailure != nil {
 		t.Error("No error expected")
@@ -42,6 +44,8 @@ func TestAuthorizeRequestWithOptionalFields(t *testing.T) {
 		RequestType: "code",
 		ClientId:    "cid",
 		RedirectURI:    "http://blah",
+		Scope: "the scope",
+		State: "the state",
 	}) {
 		t.Errorf("Authorization request looks like this: %+v", authorizationRequest)
 	}

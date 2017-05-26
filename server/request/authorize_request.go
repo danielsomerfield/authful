@@ -10,10 +10,12 @@ type AuthorizeRequest struct {
 	RequestType string
 	ClientId    string
 	RedirectURI string
+	Scope       string
+	State       string
 }
 
 type ParseError struct {
-	MissingFields    []string
+	MissingFields []string
 }
 
 func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
@@ -23,6 +25,8 @@ func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
 		"request_type": required(&authorizeRequest.RequestType),
 		"client_id":    required(&authorizeRequest.ClientId),
 		"redirect_uri": optional(&authorizeRequest.RedirectURI),
+		"scope":        optional(&authorizeRequest.Scope),
+		"state":        optional(&authorizeRequest.State),
 	}
 
 	parseError := ParseRequest(values, fields)
@@ -35,27 +39,27 @@ func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
 }
 
 func required(field *string) *mapping {
-	return & mapping {
-		field: field,
+	return &mapping{
+		field:    field,
 		required: true,
 	}
 }
 
 func optional(field *string) *mapping {
-	return & mapping {
-		field: field,
+	return &mapping{
+		field:    field,
 		required: false,
 	}
 }
 
 type mapping struct {
-	field* string
+	field    *string
 	required bool
 }
 
 func ParseRequest(values url.Values, fields map[string]*mapping) *ParseError {
 	parseError := ParseError{
-		MissingFields:    []string{},
+		MissingFields: []string{},
 	}
 
 	for key, mapping := range fields {
