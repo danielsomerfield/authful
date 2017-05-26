@@ -16,7 +16,7 @@ func TestAuthorize(t *testing.T) {
 	err = testutils.RunServer()
 	defer testutils.StopServer()
 
-	resp, err = http.Get("http://localhost:8080/authorize?request_type=code")
+	resp, err = http.Get("http://localhost:8080/authorize?request_type=code?client_id=1234")
 
 	if err == nil {
 		if resp.StatusCode == 200 {

@@ -3,37 +3,58 @@ package request
 import (
 	"net/url"
 	"strings"
+	"sort"
 )
 
 type AuthorizeRequest struct {
-	requestType string
-	clientId    string
+	RequestType string
+	ClientId    string
 }
 
 type ParseError struct {
-	missingFields []string
+	MissingFields    []string
+	UnexpectedFields [] string
 }
 
 func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
-	missingFields := []string{}
 	authorizeRequest := AuthorizeRequest{}
 
-	authorizeRequest.requestType, missingFields = getValue("request_type", values, missingFields)
-	authorizeRequest.clientId, missingFields = getValue("client_id", values, missingFields)
+	fields := map[string]*string{
+		"request_type": &authorizeRequest.RequestType,
+		"client_id":    &authorizeRequest.ClientId,
+	}
 
-	if len(missingFields) > 0 {
-		return nil, &ParseError{
-			missingFields,
-		}
+	parseError := ParseRequest(values, authorizeRequest, fields)
+
+	if parseError != nil {
+		return nil, parseError
 	} else {
 		return &authorizeRequest, nil
 	}
-
 }
-func getValue(fieldName string, values url.Values, missingFields []string) (string, []string) {
+
+func ParseRequest(values url.Values, request interface{}, fields map[string]*string) *ParseError {
+	parseError := ParseError{
+		MissingFields:    []string{},
+		UnexpectedFields: []string{},
+	}
+
+	for key, value := range fields {
+		setValueOnRequest(key, values, &parseError, value)
+	}
+
+	if len(parseError.MissingFields) > 0 {
+		sort.Strings(parseError.MissingFields)
+		return &parseError
+	} else {
+		return nil;
+	}
+}
+
+func setValueOnRequest(fieldName string, values url.Values, parseError *ParseError, field *string) {
 	value := values.Get(fieldName)
 	if strings.TrimSpace(value) == "" {
-		missingFields = append(missingFields, fieldName)
+		parseError.MissingFields = append(parseError.MissingFields, fieldName)
 	}
-	return value, missingFields
+	*field = value
 }

@@ -21,12 +21,14 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 type AuthorizeResponse struct {
-	MissingFields []string
+
 }
 
 func authorizeHandler(w http.ResponseWriter, req *http.Request) {
 	//req.ParseForm()
 	//form := req.Form
+
+
 
 
 	//request_type := form.Get("request_type")
