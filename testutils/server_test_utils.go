@@ -40,11 +40,11 @@ func WaitForServer(server *server.AuthServer) error {
 	return err
 }
 
-func RunServer() error {
+func RunServer() (*server.AuthServer, *server.Credentials, error) {
 	authServer := server.NewAuthServer()
-	go authServer.Start()
-	err := WaitForServer(authServer)
-	return err
-}
 
-func StopServer() {}
+	var credentials *server.Credentials
+	credentials = authServer.Start()
+	err := WaitForServer(authServer)
+	return authServer, credentials, err
+}
