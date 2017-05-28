@@ -33,7 +33,7 @@ func authorizeHandler(w http.ResponseWriter, req *http.Request) {
 
 	authorizationRequest, parseError := request.ParseAuthorizeRequest(values)
 	if parseError != nil {
-		invalidRequest(parseError, w)
+		invalidRequest(formatParseError(parseError), w)
 		return
 	} else {
 		client := getClient(authorizationRequest.ClientId)
@@ -75,7 +75,7 @@ type Credentials struct {
 	clientSecret string
 }
 
-func formatError(error *request.ParseError) string {
+func formatParseError(error *request.ParseError) string {
 	return fmt.Sprintf("The following fields are required: %s", error.MissingFields)
 }
 
@@ -94,7 +94,7 @@ func tokenHandler(w http.ResponseWriter, req *http.Request) {
 
 	_, parseError := request.ParseTokenRequest(req.Form)
 	if parseError != nil {
-		invalidRequest(parseError, w)
+		invalidRequest(formatParseError(parseError), w)
 		return
 	}
 	//Check that all scopes are known
@@ -108,13 +108,16 @@ func tokenHandler(w http.ResponseWriter, req *http.Request) {
 	writeOrError(w, bytes, err)
 }
 
-func invalidRequest(error *request.ParseError, w http.ResponseWriter) {
-	log.Printf("Failed to parse message from client")
-	w.WriteHeader(http.StatusBadRequest)
+func invalidRequest(errorDescription string, w http.ResponseWriter) {
+	jsonError("invalid_request", errorDescription, "", http.StatusBadRequest, w)
+}
+
+func jsonError(errorType string, errorDescription string, errorURI string, httpStatus int, w http.ResponseWriter) {
+	w.WriteHeader(httpStatus)
 	errorMessageJSON, err := json.Marshal(wireTypes.ErrorResponse{
-		Error:            "invalid_request",
-		ErrorDescription: formatError(error),
-		ErrorURI:         "",
+		Error:            errorType,
+		ErrorDescription: errorDescription,
+		ErrorURI:         errorURI,
 	})
 	if err == nil {
 		w.Write(errorMessageJSON)
@@ -128,7 +131,8 @@ func writeOrError(w http.ResponseWriter, bytes []byte, err error) {
 		w.Write(bytes)
 	} else {
 		log.Printf("Failed with following error: %+v", err)
-		http.Error(w, "Server error", http.StatusInternalServerError)
+		jsonError("unknown", "an unexpected error occurred", "",
+			http.StatusInternalServerError, w)
 	}
 }
 
