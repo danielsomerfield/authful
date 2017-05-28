@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"net/url"
 	"log"
+	"encoding/json"
+	"github.com/danielsomerfield/authful/server/wireTypes"
 )
 
 type AuthServer struct {
@@ -88,8 +90,36 @@ func (c Credentials) String() string {
 }
 
 func tokenHandler(w http.ResponseWriter, req *http.Request) {
+
+	if err := req.ParseForm(); err != nil {
+		log.Printf("Failed with following error: %+v", err)
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	//TODO: 
+	//Check for client_credentials type
+	//Parse the request type
+	//Check that all scopes are known
+	//Create the token in the backend
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("{\"access_token\":\"NYI\"}"))
+	bytes, err := json.Marshal(wireTypes.TokenResponse{
+		AccessToken: "TODO",
+		TokenType: "Bearer",
+		ExpiresIn: 3600,
+	})
+	writeOrError(w, bytes, err)
+}
+
+
+
+func writeOrError(w http.ResponseWriter, bytes []byte, err error) {
+	if err == nil {
+		w.Write(bytes)
+	} else {
+		log.Printf("Failed with following error: %+v", err)
+		http.Error(w, "Server error", http.StatusInternalServerError)
+	}
 }
 
 func (server *AuthServer) Start() *Credentials {
@@ -104,7 +134,7 @@ func (server *AuthServer) Start() *Credentials {
 		}
 	}()
 	return &Credentials{
-		clientId:     "CID", //TODO: real random id and secret
+		clientId:     "CID", //TODO: real random id and secret and store client
 		clientSecret: "Secret",
 	}
 }
