@@ -97,7 +97,7 @@ func tokenHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//TODO: 
+	//TODO:
 	//Check for client_credentials type
 	//Parse the request type
 	//Check that all scopes are known
