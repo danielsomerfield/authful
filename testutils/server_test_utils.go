@@ -14,13 +14,12 @@ type HealthCheck struct {
 }
 
 func WaitForServer(server *server.AuthServer) error {
-
 	var err error = nil
 	var resp *http.Response = nil
 	var healthcheck HealthCheck
 	var body []byte
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10; i++ {
 		resp, err = http.Get("http://localhost:8080/health")
 
 		if err == nil {
@@ -46,5 +45,6 @@ func RunServer() (*server.AuthServer, *server.Credentials, error) {
 	var credentials *server.Credentials
 	credentials = authServer.Start()
 	err := WaitForServer(authServer)
+
 	return authServer, credentials, err
 }

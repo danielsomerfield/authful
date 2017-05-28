@@ -10,6 +10,7 @@ type TokenRequest struct {
 func ParseTokenRequest(values url.Values) (*TokenRequest, *ParseError) {
 	tokenRequest := TokenRequest{}
 
+	//TODO: add support for required fields for other grant types
 	fields := map[string]*mapping{
 		"grant_type": required(&tokenRequest.GrantType),
 		"scope":      optional(&tokenRequest.Scope),

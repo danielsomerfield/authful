@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server"
 	"strings"
-	"fmt"
 	"encoding/json"
 	"github.com/danielsomerfield/authful/server/wireTypes"
+	"fmt"
 )
 
 func requestAdminToken(credentials server.Credentials) (*wireTypes.TokenResponse, error) {
@@ -37,6 +37,44 @@ func requestAdminToken(credentials server.Credentials) (*wireTypes.TokenResponse
 		return &tokenResponse, nil
 	} else {
 		return nil, err
+	}
+}
+
+func TestErrorResponse(t *testing.T) {
+	authServer, _, _ := testutils.RunServer()
+	defer authServer.Stop()
+	response, err := http.Post("http://localhost:8080/token", "application/json", strings.NewReader(""))
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	}
+
+	if response.StatusCode != 400 {
+		t.Errorf("Expected 400 but got %s", response.StatusCode)
+		return
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	}
+
+	errorResponse := wireTypes.ErrorResponse{}
+
+	if err := json.Unmarshal(body, &errorResponse); err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	}
+
+	expected := wireTypes.ErrorResponse{
+		Error :"invalid_request",
+		ErrorDescription: "The following fields are required: [grant_type]",
+		ErrorURI: "",
+	}
+
+	if errorResponse != expected {
+		t.Errorf("Unexpected response %+v", errorResponse)
 	}
 }
 
