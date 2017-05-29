@@ -3,12 +3,10 @@ package server
 import (
 	"net/http"
 	"fmt"
-	"github.com/danielsomerfield/authful/server/request"
 	"encoding/base64"
 	"net/url"
 	"log"
-	"encoding/json"
-	"github.com/danielsomerfield/authful/server/wireTypes"
+	"github.com/danielsomerfield/authful/server/oauth"
 )
 
 type AuthServer struct {
@@ -27,113 +25,14 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("{\"status\":\"ok\"}"))
 }
 
-func authorizeHandler(w http.ResponseWriter, req *http.Request) {
-	req.ParseForm()
-	values := req.Form
-
-	authorizationRequest, parseError := request.ParseAuthorizeRequest(values)
-	if parseError != nil {
-		invalidRequest(formatParseError(parseError), w)
-		return
-	} else {
-		client := getClient(authorizationRequest.ClientId)
-		if client == nil {
-			//TODO: write back 401 and {"error": "invalid_client"}
-			return;
-		}
-	}
-
-	//Reject if the redirect_uri doesn't match one configured with the client
-
-	//Check scopes
-	//Redirect to error if there is a scope in the request that's not in the client
-
-	//Identify RO and ask for approval of request
-
-	//request_type := form.Get("request_type")
-	//if request_type == "" {
-	//	return AuthorizeResponse{
-	//		MissingFields:[]string{"request_type"},
-	//	}
-	//}
-
-	//client_id 	REQUIRED
-	//redirect_uri 	OPTIONAL
-	//scope		OPTIONAL
-	//state		OPTIONAL
-}
-
-func getClient(clientId string) *Client {
-	return nil
-}
-
-type Client struct {
-}
-
 type Credentials struct {
 	clientId     string
 	clientSecret string
 }
 
-func formatParseError(error *request.ParseError) string {
-	return fmt.Sprintf("The following fields are required: %s", error.MissingFields)
-}
-
 func (c Credentials) String() string {
 	creds := fmt.Sprintf("{%s}:{%s}", url.QueryEscape(c.clientId), url.QueryEscape(c.clientSecret))
 	return base64.StdEncoding.EncodeToString([]byte(creds))
-}
-
-func tokenHandler(w http.ResponseWriter, req *http.Request) {
-
-	if err := req.ParseForm(); err != nil {
-		log.Printf("Failed with following error: %+v", err)
-		http.Error(w, "Server error", http.StatusInternalServerError)
-		return
-	}
-
-	_, parseError := request.ParseTokenRequest(req.Form)
-	if parseError != nil {
-		invalidRequest(formatParseError(parseError), w)
-		return
-	}
-	//Check that all scopes are known
-	//Create the token in the backend
-	w.Header().Set("Content-Type", "application/json")
-	bytes, err := json.Marshal(wireTypes.TokenResponse{
-		AccessToken: "TODO",
-		TokenType:   "Bearer",
-		ExpiresIn:   3600,
-	})
-	writeOrError(w, bytes, err)
-}
-
-func invalidRequest(errorDescription string, w http.ResponseWriter) {
-	jsonError("invalid_request", errorDescription, "", http.StatusBadRequest, w)
-}
-
-func jsonError(errorType string, errorDescription string, errorURI string, httpStatus int, w http.ResponseWriter) {
-	w.WriteHeader(httpStatus)
-	errorMessageJSON, err := json.Marshal(wireTypes.ErrorResponse{
-		Error:            errorType,
-		ErrorDescription: errorDescription,
-		ErrorURI:         errorURI,
-	})
-	if err == nil {
-		w.Write(errorMessageJSON)
-	} else {
-		log.Printf("Failed to write error message: %+v", err)
-	}
-}
-
-func writeOrError(w http.ResponseWriter, bytes []byte, err error) {
-	if err == nil {
-		w.Write(bytes)
-	} else {
-		log.Printf("Failed with following error: %+v", err)
-		jsonError("unknown", "an unexpected error occurred", "",
-			http.StatusInternalServerError, w)
-	}
 }
 
 func (server *AuthServer) Start() *Credentials {
@@ -157,7 +56,7 @@ func (server *AuthServer) Stop() error {
 }
 
 func init() {
-	http.HandleFunc("/token", tokenHandler)
+	http.HandleFunc("/token", oauth.TokenHandler)
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/authorize", authorizeHandler)
+	http.HandleFunc("/authorize", oauth.AuthorizeHandler)
 }
