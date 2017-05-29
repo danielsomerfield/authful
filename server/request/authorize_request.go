@@ -1,7 +1,7 @@
 package request
 
 import (
-	"net/url"
+	"net/http"
 )
 
 type AuthorizeRequest struct {
@@ -12,7 +12,7 @@ type AuthorizeRequest struct {
 	State        string
 }
 
-func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
+func ParseAuthorizeRequest(httpRequest http.Request) (*AuthorizeRequest, error) {
 	authorizeRequest := AuthorizeRequest{}
 
 	fields := map[string]*mapping{
@@ -23,11 +23,8 @@ func ParseAuthorizeRequest(values url.Values) (*AuthorizeRequest, *ParseError) {
 		"state":         optional(&authorizeRequest.State),
 	}
 
-	parseError := ParseRequest(values, fields)
-
-	if parseError != nil {
-		return nil, parseError
-	} else {
-		return &authorizeRequest, nil
+	if err := ParseRequest(httpRequest, fields); err != nil {
+		return nil, err
 	}
+	return &authorizeRequest, nil
 }

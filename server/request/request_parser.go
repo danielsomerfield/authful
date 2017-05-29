@@ -4,15 +4,13 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"fmt"
+	"net/http"
 )
 
 type mapping struct {
 	field    *string
 	required bool
-}
-
-type ParseError struct {
-	MissingFields []string
 }
 
 func required(field *string) *mapping {
@@ -29,27 +27,27 @@ func optional(field *string) *mapping {
 	}
 }
 
-func ParseRequest(values url.Values, fields map[string]*mapping) *ParseError {
-	parseError := ParseError{
-		MissingFields: []string{},
-	}
+func ParseRequest(httpRequest http.Request, fields map[string]*mapping) error {
+	missingFields := []string{}
+
+	httpRequest.ParseForm()
 
 	for key, mapping := range fields {
-		setValueOnRequest(key, values, &parseError, mapping)
+		setValueOnRequest(key, httpRequest.Form, &missingFields, mapping)
 	}
 
-	if len(parseError.MissingFields) > 0 {
-		sort.Strings(parseError.MissingFields)
-		return &parseError
+	if len(missingFields) > 0 {
+		sort.Strings(missingFields)
+		return fmt.Errorf("The following fields are required: %s", missingFields)
 	} else {
-		return nil;
+		return nil
 	}
 }
 
-func setValueOnRequest(fieldName string, values url.Values, parseError *ParseError, field *mapping) {
+func setValueOnRequest(fieldName string, values url.Values, missingFields *[]string, field *mapping) {
 	value := values.Get(fieldName)
 	if strings.TrimSpace(value) == "" && field.required {
-		parseError.MissingFields = append(parseError.MissingFields, fieldName)
+		*missingFields = append(*missingFields, fieldName)
 	}
 	*field.field = value
 }

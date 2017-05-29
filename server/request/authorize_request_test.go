@@ -3,23 +3,29 @@ package request
 import (
 	"testing"
 	"net/url"
-	"reflect"
+	"net/http"
 )
 
 func TestAuthorizeRequestWithMissingFields(t *testing.T) {
-	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{})
+	authorizationRequest, err := ParseAuthorizeRequest(http.Request{
+		Form: url.Values{},
+	})
 	if authorizationRequest != nil {
 		t.Error("Expected parse error, not request")
-	} else if !reflect.DeepEqual(parseFailure.MissingFields, []string{"client_id", "response_type"}) {
-		t.Errorf("Missing fields were %s", parseFailure.MissingFields)
+	} else if err.Error() != "The following fields are required: [client_id response_type]" {
+		t.Errorf("Unexpected error message: %s", err.Error())
 	}
 }
 
 func TestAuthorizeRequestWithOnlyRequiredFields(t *testing.T) {
-	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{
-		"response_type": []string{"code"},
-		"client_id":    []string{"cid"},
+
+	authorizationRequest, parseFailure := ParseAuthorizeRequest(http.Request{
+		Form: url.Values{
+			"response_type": []string{"code"},
+			"client_id":     []string{"cid"},
+		},
 	})
+
 	if parseFailure != nil {
 		t.Error("No error expected")
 	} else if *authorizationRequest != (AuthorizeRequest{
@@ -31,12 +37,14 @@ func TestAuthorizeRequestWithOnlyRequiredFields(t *testing.T) {
 }
 
 func TestAuthorizeRequestWithOptionalFields(t *testing.T) {
-	authorizationRequest, parseFailure := ParseAuthorizeRequest(url.Values{
-		"response_type": []string{"code"},
-		"client_id":    []string{"cid"},
-		"redirect_uri":    []string{"http://blah"},
-		"scope":    []string{"the scope"},
-		"state":    []string{"the state"},
+	authorizationRequest, parseFailure := ParseAuthorizeRequest(http.Request{
+		Form:url.Values{
+			"response_type": []string{"code"},
+			"client_id":     []string{"cid"},
+			"redirect_uri":  []string{"http://blah"},
+			"scope":         []string{"the scope"},
+			"state":         []string{"the state"},
+		},
 	})
 	if parseFailure != nil {
 		t.Error("No error expected")

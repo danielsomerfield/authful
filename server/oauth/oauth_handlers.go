@@ -6,10 +6,7 @@ import (
 	"log"
 	"encoding/json"
 	"github.com/danielsomerfield/authful/server/wireTypes"
-	"fmt"
 )
-
-
 
 func NewTokenHandler(clientLookup ClientLookupFn) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -29,9 +26,9 @@ func TokenHandler(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	_, parseError := request.ParseTokenRequest(req.Form)
-	if parseError != nil {
-		invalidRequest(formatParseError(parseError), w)
+	_, err := request.ParseTokenRequest(*req)
+	if err != nil {
+		invalidRequest(err.Error(), w)
 		return
 	}
 	//Check that all scopes are known
@@ -47,11 +44,10 @@ func TokenHandler(w http.ResponseWriter, req *http.Request,
 
 func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	values := req.Form
 
-	authorizationRequest, parseError := request.ParseAuthorizeRequest(values)
-	if parseError != nil {
-		invalidRequest(formatParseError(parseError), w)
+	authorizationRequest, err := request.ParseAuthorizeRequest(*req)
+	if err != nil {
+		invalidRequest(err.Error(), w)
 		return
 	} else {
 		client := getClient(authorizationRequest.ClientId)
@@ -102,8 +98,4 @@ func writeOrError(w http.ResponseWriter, bytes []byte, err error) {
 		jsonError("unknown", "an unexpected error occurred", "",
 			http.StatusInternalServerError, w)
 	}
-}
-
-func formatParseError(error *request.ParseError) string {
-	return fmt.Sprintf("The following fields are required: %s", error.MissingFields)
 }

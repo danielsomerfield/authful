@@ -1,13 +1,15 @@
 package request
 
-import "net/url"
+import (
+	"net/http"
+)
 
 type TokenRequest struct {
 	GrantType string
 	Scope     string
 }
 
-func ParseTokenRequest(values url.Values) (*TokenRequest, *ParseError) {
+func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
 	tokenRequest := TokenRequest{}
 
 	//TODO: add support for required fields for other grant types
@@ -16,11 +18,8 @@ func ParseTokenRequest(values url.Values) (*TokenRequest, *ParseError) {
 		"scope":      optional(&tokenRequest.Scope),
 	}
 
-	parseError := ParseRequest(values, fields)
-
-	if parseError != nil {
-		return nil, parseError
-	} else {
-		return &tokenRequest, nil
+	if err := ParseRequest(httpRequest, fields); err != nil {
+		return nil, err
 	}
+	return &tokenRequest, nil
 }
