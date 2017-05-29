@@ -14,3 +14,7 @@ func TestTokenRequestWithMissingFields(t *testing.T) {
 		t.Errorf("Missing fields were %s", parseFailure.MissingFields)
 	}
 }
+
+//TODO: check valid parse from post body
+//TODO: check valid parse from headers
+//TODO: check if form isn't parseable

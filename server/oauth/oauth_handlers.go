@@ -9,8 +9,20 @@ import (
 	"fmt"
 )
 
-func TokenHandler(w http.ResponseWriter, req *http.Request) {
 
+
+func NewTokenHandler(clientLookup ClientLookupFn) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		TokenHandler(w, req, clientLookup)
+	}
+}
+
+func TokenHandler(w http.ResponseWriter, req *http.Request,
+	clientLookup ClientLookupFn) {
+
+	//TODO: check auth header for client id and secret
+	//TODO: check post body for clientid and secret
+	//TODO: lookup client id and secret and reject if unknown
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -59,7 +71,6 @@ func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
 
 type Client struct {
 }
-
 
 func getClient(clientId string) *Client {
 	return nil

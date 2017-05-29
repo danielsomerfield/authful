@@ -56,7 +56,7 @@ func (server *AuthServer) Stop() error {
 }
 
 func init() {
-	http.HandleFunc("/token", oauth.TokenHandler)
+	http.HandleFunc("/token", oauth.NewTokenHandler(oauth.DefaultClientLookup))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", oauth.AuthorizeHandler)
 }
