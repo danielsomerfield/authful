@@ -2,8 +2,8 @@ package oauth
 
 import "errors"
 
-type ClientLookupFn func(clientId string, clientSecret string) (*Client, error)
+type ClientLookupFn func(clientId string) (*Client, error)
 
-func DefaultClientLookup(clientId string, clientSecret string) (*Client, error) {
+func DefaultClientLookup(clientId string) (*Client, error) {
 	return nil, errors.New("NYI")
 }

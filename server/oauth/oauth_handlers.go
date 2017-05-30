@@ -17,20 +17,24 @@ func NewTokenHandler(clientLookup ClientLookupFn) func(http.ResponseWriter, *htt
 func TokenHandler(w http.ResponseWriter, req *http.Request,
 	clientLookup ClientLookupFn) {
 
-	//TODO: check auth header for client id and secret
-	//TODO: check post body for clientid and secret
-	//TODO: lookup client id and secret and reject if unknown
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
 
-	_, err := request.ParseTokenRequest(*req)
+	tokenRequest, err := request.ParseTokenRequest(*req)
 	if err != nil {
 		invalidRequest(err.Error(), w)
 		return
 	}
+
+	client, err := clientLookup(tokenRequest.ClientId)
+	if client == nil {
+		jsonError("invalid_client", "The client was not known.", "", 401, w)
+		return
+	}
+
 	//Check that all scopes are known
 	//Create the token in the backend
 	w.Header().Set("Content-Type", "application/json")
