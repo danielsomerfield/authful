@@ -30,8 +30,8 @@ func TokenHandler(w http.ResponseWriter, req *http.Request,
 	}
 
 	client, err := clientLookup(tokenRequest.ClientId)
-	if client == nil {
-		jsonError("invalid_client", "The client was not known.", "", 401, w)
+	if client == nil || !client.checkSecret(tokenRequest.ClientSecret) {
+		jsonError("invalid_client", "Invalid client.", "", 401, w)
 		return
 	}
 
@@ -69,7 +69,8 @@ func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
 	//Authenticate RO and ask for approval of request
 }
 
-type Client struct {
+type Client interface {
+	checkSecret(secret string) bool
 }
 
 func getClient(clientId string) *Client {
