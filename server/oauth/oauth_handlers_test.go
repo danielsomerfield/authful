@@ -171,4 +171,36 @@ func TestTokenHandler_IncorrectSecret(t *testing.T) {
 	}
 }
 
+func TestTokenHandler_UnknownGrantType(t *testing.T) {
+	body := fmt.Sprintf("grant_type=non_existing&client_id=%s&client_secret=%s", validClientId, validClientSecret)
+	post, err := http.NewRequest("POST", "http://localhost:8080/token",
+		strings.NewReader(body))
+	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	response, err := http.DefaultClient.Do(post)
+
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	}
+
+	if response.StatusCode != 400 {
+		t.Errorf("Expected 400, but got %d", response.StatusCode)
+		return
+	}
+
+	var error map[string]string
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	}
+	json.Unmarshal(data, &error)
+
+	if error["error"] != "unsupported_grant_type" {
+		t.Errorf("Got unexpected error %s but should have been 'unsupported_grant_type'", error["error"])
+		return
+	}
+}
+
 //TODO: ensure that header and body methods together is an error

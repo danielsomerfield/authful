@@ -45,15 +45,21 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		return
 	}
 
-	//Check that all scopes are known
-	//Create the token in the backend
-	w.Header().Set("Content-Type", "application/json")
-	bytes, err := json.Marshal(wireTypes.TokenResponse{
-		AccessToken: tokenGenerator(),
-		TokenType:   "Bearer",
-		ExpiresIn:   config.DefaultTokenExpiration,
-	})
-	writeOrError(w, bytes, err)
+	if tokenRequest.GrantType == "client_credentials" {
+		//Check that all scopes are known
+		//Create the token in the backend
+		w.Header().Set("Content-Type", "application/json")
+		bytes, err := json.Marshal(wireTypes.TokenResponse{
+			AccessToken: tokenGenerator(),
+			TokenType:   "Bearer",
+			ExpiresIn:   config.DefaultTokenExpiration,
+		})
+		writeOrError(w, bytes, err)
+	} else {
+		jsonError("unsupported_grant_type", "the grant type was missing or unknown", "",
+			http.StatusBadRequest, w)
+	}
+
 }
 
 func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
