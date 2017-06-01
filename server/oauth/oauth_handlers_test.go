@@ -35,7 +35,7 @@ func mockTokenGenerator() string {
 	return "mock-token"
 }
 
-var tokenHandlerConfig = TokenHandlerConfig {
+var tokenHandlerConfig = TokenHandlerConfig{
 	DefaultTokenExpiration: 3600,
 }
 
@@ -56,151 +56,151 @@ func TestTokenHandler_RejectsGetRequest(t *testing.T) {
 	}
 }
 
-func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
-	body := fmt.Sprintf("grant_type=client_credentials&client_id=%s&client_secret=%s", validClientId, validClientSecret)
-	post, err := http.NewRequest("POST", "http://localhost:8080/token",
-		strings.NewReader(body))
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
+type TokenResponse struct {
+	json      map[string]interface{}
+	httpStatus int
+	err        error
+}
+
+func (rs *TokenResponse) thenAssert(test func(response *TokenResponse) error, t *testing.T) error {
+	if rs.err != nil {
+		t.Errorf("Request failed: %+v", rs.err)
+		return rs.err
 	}
 
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	err := test(rs)
+	if err != nil {
+		t.Errorf("Assertion failed: %+v", err)
+		return rs.err
+	}
+	return nil
+}
+
+func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSecret string) *TokenResponse {
+	body := fmt.Sprintf("grant_type=%s&client_id=%s&client_secret=%s", grantType, clientId, clientSecret)
+	post, err := http.NewRequest("POST", "http://localhost:8080/token",
+		strings.NewReader(body))
+
+	if post.Header.Set("Content-Type", "application/x-www-form-urlencoded"); err != nil {
+		return &TokenResponse{
+			err: err,
+		}
+	}
+
+	//TODO: header case
 	//creds := fmt.Sprintf("%s:%s", validClientId, validClientSecret)
 	//post.Header.Set("Authorization", base64.StdEncoding.EncodeToString([]byte(creds)))
 
 	response, err := http.DefaultClient.Do(post)
 	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
+		return &TokenResponse{
+			err: err,
+		}
+	}
+
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return &TokenResponse{
+			err: err,
+		}
 	}
 
 	var jwt map[string]interface{}
-	responseBody, err := ioutil.ReadAll(response.Body)
-	if err != nil || response.StatusCode != 200 {
-		t.Errorf("Unexpected error %+v, %d, %s", err, response.StatusCode, string(responseBody))
-		return
-	}
-
 	err = json.Unmarshal(responseBody, &jwt)
-
-	expected := map[string]interface{}{
-		"access_token":"mock-token",
-		"token_type": "Bearer",
-		"expires_in": float64(3600),
+	if err != nil {
+		return &TokenResponse{
+			err: err,
+		}
 	}
-
-	if err != nil || !reflect.DeepEqual(jwt, expected) {
-		t.Errorf("Returned jwt didn't match. \nExpected: %+v. \nWas:      %+v\nError:     %v", expected, jwt, err)
+	return &TokenResponse{
+		json:      jwt,
+		httpStatus: response.StatusCode,
+		err:        nil,
 	}
+}
+
+func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
+	doTokenEndpointRequestWithBody("client_credentials", validClientId, validClientSecret).
+		thenAssert(func(response *TokenResponse) error {
+		if response.httpStatus != 200 {
+			return fmt.Errorf("Expected 401, but got %d", response.httpStatus)
+		}
+		expected := map[string]interface{}{
+			"access_token": "mock-token",
+			"token_type":   "Bearer",
+			"expires_in":   float64(3600),
+		}
+
+		if !reflect.DeepEqual(response.json, expected) {
+			return fmt.Errorf("Returned jwt didn't match. \nExpected: %+v. \nWas:      %+v\n", expected,
+				response.json)
+		}
+
+		return nil
+	}, t)
 }
 
 func TestTokenHandler_UnknownClientInBody(t *testing.T) {
-	body := fmt.Sprintf("grant_type=client_credentials&client_id=%s&client_secret=%s", unknownClientId, validClientSecret)
-	post, err := http.NewRequest("POST", "http://localhost:8080/token",
-		strings.NewReader(body))
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	doTokenEndpointRequestWithBody("client_credentials", unknownClientId, validClientSecret).
+		thenAssert(func(response *TokenResponse) error {
+		if response.httpStatus != 401 {
+			return fmt.Errorf("Expected 401, but got %d", response.httpStatus)
+		}
 
-	response, err := http.DefaultClient.Do(post)
+		expected := map[string]interface{}{
+			"error":             "invalid_client",
+			"error_description": "Invalid client.",
+			"error_uri":         "",
+		}
 
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
+		if !reflect.DeepEqual(response.json, expected) {
+			return fmt.Errorf("Returned data didn't match. \nExpected: %+v. \nWas:      %+v\n", expected,
+				response.json)
+		}
 
-	if response.StatusCode != 401 {
-		t.Errorf("Expected 401, but got %d", response.StatusCode)
-		return
-	}
-
-	var errorMessage interface{}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
-	json.Unmarshal(data, &errorMessage)
-
-	expected := map[string]interface{}{
-		"error":             "invalid_client",
-		"error_description": "Invalid client.",
-		"error_uri":         "",
-	}
-
-	if !reflect.DeepEqual(errorMessage, expected) {
-		t.Errorf("Got unexpected error %+v", errorMessage)
-		return
-	}
+		return nil
+	}, t)
 }
 
 func TestTokenHandler_IncorrectSecret(t *testing.T) {
-	body := fmt.Sprintf("grant_type=client_credentials&client_id=%s&client_secret=%s", validClientId, invalidClientSecret)
-	post, err := http.NewRequest("POST", "http://localhost:8080/token",
-		strings.NewReader(body))
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	doTokenEndpointRequestWithBody("client_credentials", validClientId, invalidClientSecret).
+		thenAssert(func(response *TokenResponse) error {
+		if response.httpStatus != 401 {
+			return fmt.Errorf("Expected 401, but got %d", response.httpStatus)
+		}
 
-	response, err := http.DefaultClient.Do(post)
+		expected := map[string]interface{}{
+			"error":             "invalid_client",
+			"error_description": "Invalid client.",
+			"error_uri":         "",
+		}
 
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
+		if !reflect.DeepEqual(response.json, expected) {
+			return fmt.Errorf("Returned data didn't match. \nExpected: %+v. \nWas:      %+v\n", expected,
+				response.json)
+		}
 
-	if response.StatusCode != 401 {
-		t.Errorf("Expected 401, but got %d", response.StatusCode)
-		return
-	}
-
-	var errorMessage interface{}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
-	json.Unmarshal(data, &errorMessage)
-
-	expected := map[string]interface{}{
-		"error":             "invalid_client",
-		"error_description": "Invalid client.",
-		"error_uri":         "",
-	}
-
-	if !reflect.DeepEqual(errorMessage, expected) {
-		t.Errorf("Got unexpected error %+v", errorMessage)
-		return
-	}
+		return nil
+	}, t)
 }
 
+
 func TestTokenHandler_UnknownGrantType(t *testing.T) {
-	body := fmt.Sprintf("grant_type=non_existing&client_id=%s&client_secret=%s", validClientId, validClientSecret)
-	post, err := http.NewRequest("POST", "http://localhost:8080/token",
-		strings.NewReader(body))
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	doTokenEndpointRequestWithBody("not real", validClientId, validClientSecret).
+		thenAssert(func(response *TokenResponse) error {
+		if response.httpStatus != 400 {
+			return fmt.Errorf("Expected 400, but got %d", response.httpStatus)
+		}
 
-	response, err := http.DefaultClient.Do(post)
 
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
+		if response.json["error"] != "unsupported_grant_type" {
+			return fmt.Errorf("Got unexpected error %s but should have been 'unsupported_grant_type'",
+				response.json["error"])
+		}
+		return nil
+	}, t)
 
-	if response.StatusCode != 400 {
-		t.Errorf("Expected 400, but got %d", response.StatusCode)
-		return
-	}
 
-	var error map[string]string
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
-	json.Unmarshal(data, &error)
-
-	if error["error"] != "unsupported_grant_type" {
-		t.Errorf("Got unexpected error %s but should have been 'unsupported_grant_type'", error["error"])
-		return
-	}
 }
 
 //TODO: ensure that header and body methods together is an error
