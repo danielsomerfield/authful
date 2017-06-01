@@ -55,8 +55,16 @@ func (server *AuthServer) Stop() error {
 	return server.httpServer.Shutdown(nil)
 }
 
+func defaultTokenGenerator() string {
+	return "TODO"
+}
+
+var tokenHandlerConfig = oauth.TokenHandlerConfig {
+	DefaultTokenExpiration: 3600,
+}
+
 func init() {
-	http.HandleFunc("/token", oauth.NewTokenHandler(oauth.DefaultClientLookup))
+	http.HandleFunc("/token", oauth.NewTokenHandler(tokenHandlerConfig, oauth.DefaultClientLookup, defaultTokenGenerator))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", oauth.AuthorizeHandler)
 }

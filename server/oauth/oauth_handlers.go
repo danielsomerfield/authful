@@ -8,14 +8,24 @@ import (
 	"github.com/danielsomerfield/authful/server/wireTypes"
 )
 
-func NewTokenHandler(clientLookup ClientLookupFn) func(http.ResponseWriter, *http.Request) {
+type TokenGeneratorFn func() string
+
+type TokenHandlerConfig struct {
+	DefaultTokenExpiration float64
+}
+
+func NewTokenHandler(
+	config TokenHandlerConfig,
+	clientLookup ClientLookupFn,
+	tokenGenerator TokenGeneratorFn) func(http.ResponseWriter, *http.Request) {
+
 	return func(w http.ResponseWriter, req *http.Request) {
-		TokenHandler(w, req, clientLookup)
+		TokenHandler(w, req, config, clientLookup, tokenGenerator)
 	}
 }
 
-func TokenHandler(w http.ResponseWriter, req *http.Request,
-	clientLookup ClientLookupFn) {
+func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
+	clientLookup ClientLookupFn, tokenGenerator TokenGeneratorFn) {
 
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
@@ -39,9 +49,9 @@ func TokenHandler(w http.ResponseWriter, req *http.Request,
 	//Create the token in the backend
 	w.Header().Set("Content-Type", "application/json")
 	bytes, err := json.Marshal(wireTypes.TokenResponse{
-		AccessToken: "TODO",
+		AccessToken: tokenGenerator(),
 		TokenType:   "Bearer",
-		ExpiresIn:   3600,
+		ExpiresIn:   config.DefaultTokenExpiration,
 	})
 	writeOrError(w, bytes, err)
 }

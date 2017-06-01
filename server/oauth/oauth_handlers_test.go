@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 	"fmt"
-	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"reflect"
@@ -18,11 +17,10 @@ var invalidClientSecret = "invalid-client-secret"
 var unknownClientId = "unknown-client-id"
 
 type MockClient struct {
-
 }
 
-func (MockClient) checkSecret(secret string) bool  {
-	return false
+func (MockClient) checkSecret(secret string) bool {
+	return secret == validClientSecret
 }
 
 func mockClientLookup(clientId string) (Client, error) {
@@ -33,8 +31,16 @@ func mockClientLookup(clientId string) (Client, error) {
 	}
 }
 
+func mockTokenGenerator() string {
+	return "mock-token"
+}
+
+var tokenHandlerConfig = TokenHandlerConfig {
+	DefaultTokenExpiration: 3600,
+}
+
 func init() {
-	http.HandleFunc("/token", NewTokenHandler(mockClientLookup))
+	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, mockClientLookup, mockTokenGenerator))
 	go http.ListenAndServe(":8080", nil)
 }
 
@@ -50,20 +56,43 @@ func TestTokenHandler_RejectsGetRequest(t *testing.T) {
 	}
 }
 
-func TestTokenHandler_ClientCredentials(t *testing.T) {
-	post, err := http.NewRequest("POST", "http://localhost:8080/token", strings.NewReader("grant_type=client_credentials"))
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	token := fmt.Sprintf("%s:%s", validClientId, validClientSecret)
-	post.Header.Set("Authorization", base64.StdEncoding.EncodeToString([]byte(token)))
-
+func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
+	body := fmt.Sprintf("grant_type=client_credentials&client_id=%s&client_secret=%s", validClientId, validClientSecret)
+	post, err := http.NewRequest("POST", "http://localhost:8080/token",
+		strings.NewReader(body))
 	if err != nil {
 		t.Errorf("Unexpected error %+v", err)
 		return
 	}
 
-	//TODO check that token is returned
+	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	//creds := fmt.Sprintf("%s:%s", validClientId, validClientSecret)
+	//post.Header.Set("Authorization", base64.StdEncoding.EncodeToString([]byte(creds)))
 
+	response, err := http.DefaultClient.Do(post)
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	}
+
+	var jwt map[string]interface{}
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err != nil || response.StatusCode != 200 {
+		t.Errorf("Unexpected error %+v, %d, %s", err, response.StatusCode, string(responseBody))
+		return
+	}
+
+	err = json.Unmarshal(responseBody, &jwt)
+
+	expected := map[string]interface{}{
+		"access_token":"mock-token",
+		"token_type": "Bearer",
+		"expires_in": float64(3600),
+	}
+
+	if err != nil || !reflect.DeepEqual(jwt, expected) {
+		t.Errorf("Returned jwt didn't match. \nExpected: %+v. \nWas:      %+v\nError:     %v", expected, jwt, err)
+	}
 }
 
 func TestTokenHandler_UnknownClientInBody(t *testing.T) {
