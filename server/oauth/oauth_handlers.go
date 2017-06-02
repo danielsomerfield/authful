@@ -35,7 +35,11 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 
 	tokenRequest, err := request.ParseTokenRequest(*req)
 	if err != nil {
-		invalidRequest(err.Error(), w)
+		if err == request.ERR_INVALID_CLIENT {
+			unauthorized(err.Error(), w)
+		} else {
+			invalidRequest(err.Error(), w)
+		}
 		return
 	}
 
@@ -95,6 +99,10 @@ func getClient(clientId string) *Client {
 
 func invalidRequest(errorDescription string, w http.ResponseWriter) {
 	jsonError("invalid_request", errorDescription, "", http.StatusBadRequest, w)
+}
+
+func unauthorized(errorDescription string, w http.ResponseWriter) {
+	jsonError("invalid_client", errorDescription, "", http.StatusUnauthorized, w)
 }
 
 func jsonError(errorType string, errorDescription string, errorURI string, httpStatus int, w http.ResponseWriter) {

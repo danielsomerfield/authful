@@ -202,5 +202,3 @@ func TestTokenHandler_UnknownGrantType(t *testing.T) {
 
 
 }
-
-//TODO: ensure that header and body methods together is an error
