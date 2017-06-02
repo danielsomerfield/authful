@@ -1,4 +1,4 @@
-package oauth
+package handlers
 
 import (
 	"testing"
@@ -8,27 +8,27 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"reflect"
+	"github.com/danielsomerfield/authful/server/oauth"
 )
 
 var validClientId = "valid-client-id"
 var validClientSecret = "valid-client-secret"
 var invalidClientSecret = "invalid-client-secret"
-
 var unknownClientId = "unknown-client-id"
 
 type MockClient struct {
 	scope []string
 }
 
-func (MockClient) checkSecret(secret string) bool {
+func (MockClient) CheckSecret(secret string) bool {
 	return secret == validClientSecret
 }
 
-func (mc MockClient) getScopes() []string {
+func (mc MockClient) GetScopes() []string {
 	return mc.scope
 }
 
-func mockClientLookup(clientId string) (Client, error) {
+func mockClientLookup(clientId string) (oauth.Client, error) {
 	if clientId == validClientId {
 		return MockClient{}, nil
 	} else {

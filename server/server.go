@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"log"
 	"github.com/danielsomerfield/authful/server/oauth"
+	"github.com/danielsomerfield/authful/server/oauth/handlers"
 )
 
 type AuthServer struct {
@@ -59,12 +60,12 @@ func defaultTokenGenerator() string {
 	return "TODO"
 }
 
-var tokenHandlerConfig = oauth.TokenHandlerConfig {
+var tokenHandlerConfig = handlers.TokenHandlerConfig {
 	DefaultTokenExpiration: 3600,
 }
 
 func init() {
-	http.HandleFunc("/token", oauth.NewTokenHandler(tokenHandlerConfig, oauth.DefaultClientLookup, defaultTokenGenerator))
+	http.HandleFunc("/token", handlers.NewTokenHandler(tokenHandlerConfig, oauth.DefaultClientLookup, defaultTokenGenerator))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", oauth.AuthorizeHandler)
 }
