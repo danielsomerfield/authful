@@ -17,10 +17,15 @@ var invalidClientSecret = "invalid-client-secret"
 var unknownClientId = "unknown-client-id"
 
 type MockClient struct {
+	scope []string
 }
 
 func (MockClient) checkSecret(secret string) bool {
 	return secret == validClientSecret
+}
+
+func (mc MockClient) getScopes() []string {
+	return mc.scope
 }
 
 func mockClientLookup(clientId string) (Client, error) {
@@ -76,8 +81,12 @@ func (rs *TokenResponse) thenAssert(test func(response *TokenResponse) error, t 
 	return nil
 }
 
-func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSecret string) *TokenResponse {
+func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, clientSecret string, scope string) *TokenResponse {
+
 	body := fmt.Sprintf("grant_type=%s&client_id=%s&client_secret=%s", grantType, clientId, clientSecret)
+	if scope != "" {
+		body = body + "&scope=" + scope
+	}
 	post, err := http.NewRequest("POST", "http://localhost:8080/token",
 		strings.NewReader(body))
 
@@ -86,10 +95,6 @@ func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSec
 			err: err,
 		}
 	}
-
-	//TODO: header case
-	//creds := fmt.Sprintf("%s:%s", validClientId, validClientSecret)
-	//post.Header.Set("Authorization", base64.StdEncoding.EncodeToString([]byte(creds)))
 
 	response, err := http.DefaultClient.Do(post)
 	if err != nil {
@@ -117,13 +122,18 @@ func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSec
 		httpStatus: response.StatusCode,
 		err:        nil,
 	}
+
+}
+
+func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSecret string) *TokenResponse {
+	return doTokenEndpointRequestWithBodyAndScope(grantType, clientId, clientSecret, "")
 }
 
 func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 	doTokenEndpointRequestWithBody("client_credentials", validClientId, validClientSecret).
 		thenAssert(func(response *TokenResponse) error {
 		if response.httpStatus != 200 {
-			return fmt.Errorf("Expected 401, but got %d", response.httpStatus)
+			return fmt.Errorf("Expected 200, but got %d", response.httpStatus)
 		}
 		expected := map[string]interface{}{
 			"access_token": "mock-token",
@@ -199,6 +209,20 @@ func TestTokenHandler_UnknownGrantType(t *testing.T) {
 		}
 		return nil
 	}, t)
+}
+
+func TestTokenHandler_ClientCredentialsWithInvalidScope(t *testing.T) {
+	doTokenEndpointRequestWithBodyAndScope("client_credentials", validClientId, validClientSecret, "badscope").
+		thenAssert(func(response *TokenResponse) error {
+		if response.httpStatus != 400 {
+			return fmt.Errorf("Expected 400, but got %d", response.httpStatus)
+		}
 
 
+		if response.json["error"] != "invalid_scope" {
+			return fmt.Errorf("Got unexpected error %s but should have been 'unsupported_grant_type'",
+				response.json["error"])
+		}
+		return nil
+	}, t)
 }

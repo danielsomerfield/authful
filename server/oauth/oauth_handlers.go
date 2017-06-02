@@ -6,6 +6,7 @@ import (
 	"log"
 	"encoding/json"
 	"github.com/danielsomerfield/authful/server/wireTypes"
+	"strings"
 )
 
 type TokenGeneratorFn func() string
@@ -50,8 +51,17 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 	}
 
 	if tokenRequest.GrantType == "client_credentials" {
-		//Check that all scopes are known
 		//Create the token in the backend
+
+		requestedScopes := strings.Fields(tokenRequest.Scope)
+		unknownScopes := elementsNotIn(requestedScopes, client.getScopes())
+		if len(unknownScopes) > 0 {
+			log.Printf("Request contained unexpected scopes: %+v", unknownScopes)
+			jsonError("invalid_scope", "a requested was unknown", "",
+				http.StatusBadRequest, w)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		bytes, err := json.Marshal(wireTypes.TokenResponse{
 			AccessToken: tokenGenerator(),
@@ -63,7 +73,27 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		jsonError("unsupported_grant_type", "the grant type was missing or unknown", "",
 			http.StatusBadRequest, w)
 	}
+}
 
+func elementsNotIn(array []string, knownElements []string) []string {
+	extraElements := []string{}
+
+	for _, element := range array {
+		if !contains(knownElements, element) {
+			extraElements = append(extraElements, element)
+		}
+	}
+
+	return extraElements
+}
+
+func contains(array []string, element string) bool {
+	for _, e := range array {
+		if element == e {
+			return true;
+		}
+	}
+	return false
 }
 
 func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
@@ -91,6 +121,7 @@ func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
 
 type Client interface {
 	checkSecret(secret string) bool
+	getScopes() []string
 }
 
 func getClient(clientId string) *Client {
