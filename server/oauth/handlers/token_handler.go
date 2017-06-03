@@ -1,6 +1,5 @@
 package handlers
 
-
 import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/request"
@@ -69,6 +68,7 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 			AccessToken: tokenGenerator(),
 			TokenType:   "Bearer",
 			ExpiresIn:   config.DefaultTokenExpiration,
+			Scope:       strings.Join(requestedScopes, " "),
 		})
 		oauth.WriteOrError(w, bytes, err)
 	} else {
@@ -97,4 +97,3 @@ func contains(array []string, element string) bool {
 	}
 	return false
 }
-

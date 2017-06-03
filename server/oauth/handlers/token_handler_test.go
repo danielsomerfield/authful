@@ -30,7 +30,9 @@ func (mc MockClient) GetScopes() []string {
 
 func mockClientLookup(clientId string) (oauth.Client, error) {
 	if clientId == validClientId {
-		return MockClient{}, nil
+		return MockClient{
+			scope: []string{"scope1", "scope2"},
+		}, nil
 	} else {
 		return nil, nil
 	}
@@ -130,7 +132,7 @@ func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSec
 }
 
 func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
-	doTokenEndpointRequestWithBody("client_credentials", validClientId, validClientSecret).
+	doTokenEndpointRequestWithBodyAndScope("client_credentials", validClientId, validClientSecret, "scope1 scope2").
 		thenAssert(func(response *TokenResponse) error {
 		if response.httpStatus != 200 {
 			return fmt.Errorf("Expected 200, but got %d", response.httpStatus)
@@ -139,6 +141,7 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 			"access_token": "mock-token",
 			"token_type":   "Bearer",
 			"expires_in":   float64(3600),
+			"scope": "scope1 scope2",
 		}
 
 		if !reflect.DeepEqual(response.json, expected) {

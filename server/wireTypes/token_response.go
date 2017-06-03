@@ -5,5 +5,5 @@ type TokenResponse struct {
 	TokenType    string        `json:"token_type"`
 	ExpiresIn    float64       `json:"expires_in"`
 	RefreshToken string        `json:"refresh_token,omitempty"`
-	Scope        []string      `json:"scope,omitempty"`
+	Scope        string        `json:"scope,omitempty"`
 }
