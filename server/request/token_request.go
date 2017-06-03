@@ -23,6 +23,7 @@ func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
 	tokenRequest := TokenRequest{}
 
 	//TODO: add support for required fields for other grant types
+	//TODO: e.g. : need a way to make sure client_id and client_secret are there if grant_type == "client_credentials"
 	fields := map[string]*mapping{
 		"grant_type":    required(&tokenRequest.GrantType),
 		"scope":         optional(&tokenRequest.Scope),
@@ -40,7 +41,7 @@ func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
 			log.Print("Invalid client: credentials in both header and body.")
 			return nil, ERR_INVALID_CLIENT
 		}
-		encodedToken := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(authHeader))
+		encodedToken := regexp.MustCompile("Basic ([a-zA-Z0-9]*)").FindStringSubmatch(string(authHeader))
 		if len(encodedToken) > 1 {
 			bearerBytes, err := base64.RawStdEncoding.DecodeString(encodedToken[1])
 			if err != nil {

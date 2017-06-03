@@ -9,7 +9,6 @@ import (
 	"strings"
 	"encoding/json"
 	"github.com/danielsomerfield/authful/server/wireTypes"
-	"fmt"
 )
 
 func requestAdminToken(credentials server.Credentials) (*wireTypes.TokenResponse, error) {
@@ -39,6 +38,45 @@ func requestAdminToken(credentials server.Credentials) (*wireTypes.TokenResponse
 		return nil, err
 	}
 }
+
+//TODO: disabled until fixing the issue with storing the default admin client creds
+//func TestClientCredentialsEnd2End(t *testing.T) {
+//	go func() {
+//		httpServer := http.Server{Addr: ":8181"}
+//		httpServer.ListenAndServe()
+//		http.HandleFunc("/test", func(w http.ResponseWriter, request *http.Request) {
+//			body, err := ioutil.ReadAll(request.Body)
+//			fmt.Printf("/test: body = %+v err = %+v", body, err)
+//		})
+//	}()
+//
+//	authServer, creds, err := testutils.RunServer()
+//	if err != nil {
+//		t.Errorf("Unexpected error %+v", err)
+//	}
+//	defer authServer.Stop()
+//
+//	ctx := context.Background()
+//	config := clientcredentials.Config{
+//		ClientID: creds.ClientId,
+//		ClientSecret: creds.ClientSecret,
+//		TokenURL: "http://localhost:8080/token",
+//		Scopes: []string{},
+//	}
+//
+//	resp, err := config.Client(ctx).Get("http://localhost:8181/test")
+//	if err != nil {
+//		t.Errorf("Unexpected error %+v", err)
+//		return
+//	}
+//
+//	body, err := ioutil.ReadAll(resp.Body)
+//	if err != nil {
+//		t.Errorf("Unexpected error %+v", err)
+//		return
+//	}
+//	fmt.Printf("Body: %s", string(body))
+//}
 
 func TestErrorResponse(t *testing.T) {
 	authServer, _, _ := testutils.RunServer()
@@ -80,15 +118,14 @@ func TestErrorResponse(t *testing.T) {
 
 func TestAuthorize(t *testing.T) {
 
-	var err error = nil
-	var credentials *server.Credentials
-	var authServer *server.AuthServer
-
-	authServer, credentials, err = testutils.RunServer()
+	authServer, credentials, err := testutils.RunServer()
 	defer authServer.Stop()
 
-	token, err := requestAdminToken(*credentials)
-	fmt.Printf("Token: %+v, %+v", token, err)
+	_, err = requestAdminToken(*credentials)
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+	}
+	//fmt.Printf("Token: %+v, %+v", token, err)
 	return
 
 	//Register a client and get back client id and secret

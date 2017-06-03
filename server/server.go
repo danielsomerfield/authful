@@ -28,12 +28,12 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 type Credentials struct {
-	clientId     string
-	clientSecret string
+	ClientId     string
+	ClientSecret string
 }
 
 func (c Credentials) String() string {
-	creds := fmt.Sprintf("{%s}:{%s}", url.QueryEscape(c.clientId), url.QueryEscape(c.clientSecret))
+	creds := fmt.Sprintf("{%s}:{%s}", url.QueryEscape(c.ClientId), url.QueryEscape(c.ClientSecret))
 	return base64.StdEncoding.EncodeToString([]byte(creds))
 }
 
@@ -47,10 +47,13 @@ func (server *AuthServer) Start() *Credentials {
 			log.Printf("Server started on port %v\n", server.port)
 		}
 	}()
-	return &Credentials{
-		clientId:     "CID", //TODO: real random id and secret and store client
-		clientSecret: "Secret",
+	clientId := "CID"
+	clientSecret := "Secret"
+	credentials := Credentials{
+		ClientId:     clientId, //TODO: real random id and secret and store client
+		ClientSecret: clientSecret,
 	}
+	return &credentials
 }
 
 func (server *AuthServer) Stop() error {

@@ -62,6 +62,11 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 
 	client, err := clientLookup(tokenRequest.ClientId)
 	if client == nil || !client.CheckSecret(tokenRequest.ClientSecret) {
+		if client == nil {
+			log.Printf("Attempt to find invalid client by id \"%s\"", tokenRequest.ClientId)
+		} else {
+			log.Printf("Bad secret for client id \"%s\"", tokenRequest.ClientId)
+		}
 		oauth.JsonError("invalid_client", "Invalid client.", "", 401, w)
 		return
 	}

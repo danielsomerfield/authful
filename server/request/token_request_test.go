@@ -55,7 +55,7 @@ func TestTokenRequestWithAllClientCredentialsInHeaders(t *testing.T) {
 			"scope":      []string{"foo bar"},
 		},
 		Header: map[string][]string{
-			"Authorization": {"Bearer " + token},
+			"Authorization": {"Basic " + token},
 		},
 	}
 	tokenRequest, err := ParseTokenRequest(req)
