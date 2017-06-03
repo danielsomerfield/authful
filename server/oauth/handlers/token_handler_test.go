@@ -11,6 +11,7 @@ import (
 	"github.com/danielsomerfield/authful/server/oauth"
 	"time"
 	"bytes"
+	"errors"
 )
 
 var validClientId = "valid-client-id"
@@ -178,20 +179,20 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 				response.json)
 		}
 
-		//if tokenMetaData, ok := mockTokenStore.storedTokens["mock-token"]; ok {
-		//	expectedTokenMetaData := TokenMetaData{
-		//		token: "mock-token",
-		//		expiration: mockNow.Add(time.Duration(tokenHandlerConfig.DefaultTokenExpiration * 1000)),
-		//		clientId: validClientId,
-		//	}
-		//	if tokenMetaData != expectedTokenMetaData {
-		//		return fmt.Errorf("Token meta data didn't match. \nExpected: %+v. \nWas:      %+v\n",
-		//			expectedTokenMetaData,
-		//			tokenMetaData)
-		//	}
-		//} else {
-		//	return errors.New("The token did not get stored.")
-		//}
+		if tokenMetaData, ok := mockTokenStore.storedTokens["mock-token"]; ok {
+			expectedTokenMetaData := TokenMetaData{
+				token: "mock-token",
+				expiration: mockNow.Add(time.Duration(tokenHandlerConfig.DefaultTokenExpiration) * time.Second),
+				clientId: validClientId,
+			}
+			if tokenMetaData != expectedTokenMetaData {
+				return fmt.Errorf("Token meta data didn't match. \nExpected: %+v. \nWas:      %+v\n",
+					expectedTokenMetaData,
+					tokenMetaData)
+			}
+		} else {
+			return errors.New("The token did not get stored.")
+		}
 
 		return nil
 	}, t)

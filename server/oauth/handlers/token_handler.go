@@ -67,7 +67,6 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 	}
 
 	if tokenRequest.GrantType == "client_credentials" {
-		//Create the token in the backend
 
 		requestedScopes := strings.Fields(tokenRequest.Scope)
 		unknownScopes := elementsNotIn(requestedScopes, client.GetScopes())
@@ -81,11 +80,11 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		w.Header().Set("Content-Type", "application/json")
 		token := tokenGenerator()
 
-		//tokenStore.storeToken(token, TokenMetaData{
-		//	token: token,
-		//	//TODO: add the time -- change the float64s to int64s which will require a change to the testing
-		//	clientId: tokenRequest.ClientId,
-		//})
+		tokenStore.StoreToken(token, TokenMetaData{
+			token: token,
+			expiration: currentTimeFn().Add(time.Duration(config.DefaultTokenExpiration) * time.Second),
+			clientId: tokenRequest.ClientId,
+		})
 
 		bytes, err := json.Marshal(wireTypes.TokenResponse{
 			AccessToken: token,
