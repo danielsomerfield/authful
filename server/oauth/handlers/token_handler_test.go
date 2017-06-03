@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"reflect"
 	"github.com/danielsomerfield/authful/server/oauth"
+	"time"
+	"bytes"
 )
 
 var validClientId = "valid-client-id"
@@ -46,9 +48,33 @@ var tokenHandlerConfig = TokenHandlerConfig{
 	DefaultTokenExpiration: 3600,
 }
 
+type MockTokenStore struct {
+	storedTokens map[string]TokenMetaData
+}
+
+var mockTokenStore = MockTokenStore {
+	storedTokens:map[string]TokenMetaData{},
+}
+
+func (m MockTokenStore) StoreToken(token string, clientMetaData TokenMetaData) {
+	m.storedTokens[token] = clientMetaData
+}
+
+func (m MockTokenStore) reset() {
+	m.storedTokens = map[string]TokenMetaData{}
+}
+
+var mockNow = time.Now()
+
+func mockCurrentTimeFn() time.Time {
+	return mockNow
+}
+
+
 func init() {
-	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, mockClientLookup, mockTokenGenerator))
+	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, mockClientLookup, mockTokenGenerator, mockTokenStore, mockCurrentTimeFn))
 	go http.ListenAndServe(":8080", nil)
+	mockTokenStore.reset()
 }
 
 func TestTokenHandler_RejectsGetRequest(t *testing.T) {
@@ -113,7 +139,10 @@ func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, c
 	}
 
 	var jwt map[string]interface{}
-	err = json.Unmarshal(responseBody, &jwt)
+	//err = json.Unmarshal(responseBody, &jwt)
+	decoder := json.NewDecoder(bytes.NewBuffer(responseBody))
+	decoder.UseNumber()
+	decoder.Decode(&jwt)
 	if err != nil {
 		return &TokenResponse{
 			err: err,
@@ -140,7 +169,7 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 		expected := map[string]interface{}{
 			"access_token": "mock-token",
 			"token_type":   "Bearer",
-			"expires_in":   float64(3600),
+			"expires_in":   json.Number("3600"),
 			"scope": "scope1 scope2",
 		}
 
@@ -148,6 +177,21 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 			return fmt.Errorf("Returned jwt didn't match. \nExpected: %+v. \nWas:      %+v\n", expected,
 				response.json)
 		}
+
+		//if tokenMetaData, ok := mockTokenStore.storedTokens["mock-token"]; ok {
+		//	expectedTokenMetaData := TokenMetaData{
+		//		token: "mock-token",
+		//		expiration: mockNow.Add(time.Duration(tokenHandlerConfig.DefaultTokenExpiration * 1000)),
+		//		clientId: validClientId,
+		//	}
+		//	if tokenMetaData != expectedTokenMetaData {
+		//		return fmt.Errorf("Token meta data didn't match. \nExpected: %+v. \nWas:      %+v\n",
+		//			expectedTokenMetaData,
+		//			tokenMetaData)
+		//	}
+		//} else {
+		//	return errors.New("The token did not get stored.")
+		//}
 
 		return nil
 	}, t)

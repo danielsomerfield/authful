@@ -8,26 +8,41 @@ import (
 	"github.com/danielsomerfield/authful/server/wireTypes"
 	"strings"
 	"github.com/danielsomerfield/authful/server/oauth"
+	"time"
 )
+
+type CurrentTimeFn func() time.Time
 
 type TokenGeneratorFn func() string
 
 type TokenHandlerConfig struct {
-	DefaultTokenExpiration float64
+	DefaultTokenExpiration int64
+}
+
+type TokenMetaData struct {
+	token string
+	expiration time.Time
+	clientId string
+}
+
+type TokenStore interface {
+	StoreToken(token string, tokenMetaData TokenMetaData)
 }
 
 func NewTokenHandler(
 	config TokenHandlerConfig,
 	clientLookup oauth.ClientLookupFn,
-	tokenGenerator TokenGeneratorFn) func(http.ResponseWriter, *http.Request) {
+	tokenGenerator TokenGeneratorFn,
+	tokenStore TokenStore,
+	currentTimeFn CurrentTimeFn) func(http.ResponseWriter, *http.Request) {
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		TokenHandler(w, req, config, clientLookup, tokenGenerator)
+		TokenHandler(w, req, config, clientLookup, tokenGenerator, tokenStore, currentTimeFn)
 	}
 }
 
 func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
-	clientLookup oauth.ClientLookupFn, tokenGenerator TokenGeneratorFn) {
+	clientLookup oauth.ClientLookupFn, tokenGenerator TokenGeneratorFn, tokenStore TokenStore, currentTimeFn CurrentTimeFn) {
 
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
@@ -64,8 +79,16 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		token := tokenGenerator()
+
+		//tokenStore.storeToken(token, TokenMetaData{
+		//	token: token,
+		//	//TODO: add the time -- change the float64s to int64s which will require a change to the testing
+		//	clientId: tokenRequest.ClientId,
+		//})
+
 		bytes, err := json.Marshal(wireTypes.TokenResponse{
-			AccessToken: tokenGenerator(),
+			AccessToken: token,
 			TokenType:   "Bearer",
 			ExpiresIn:   config.DefaultTokenExpiration,
 			Scope:       strings.Join(requestedScopes, " "),

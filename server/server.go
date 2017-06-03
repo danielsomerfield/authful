@@ -8,6 +8,7 @@ import (
 	"log"
 	"github.com/danielsomerfield/authful/server/oauth"
 	"github.com/danielsomerfield/authful/server/oauth/handlers"
+	"time"
 )
 
 type AuthServer struct {
@@ -64,8 +65,27 @@ var tokenHandlerConfig = handlers.TokenHandlerConfig {
 	DefaultTokenExpiration: 3600,
 }
 
+type DefaultTokenStore struct {
+
+}
+
+func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData handlers.TokenMetaData) {
+
+}
+
+var tokenStore = DefaultTokenStore{}
+
+func currentTimeFn() time.Time {
+	return time.Now()
+}
+
 func init() {
-	http.HandleFunc("/token", handlers.NewTokenHandler(tokenHandlerConfig, oauth.DefaultClientLookup, defaultTokenGenerator))
+	http.HandleFunc("/token", handlers.NewTokenHandler(
+		tokenHandlerConfig,
+		oauth.DefaultClientLookup,
+		defaultTokenGenerator,
+		tokenStore,
+		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", oauth.AuthorizeHandler)
 }
