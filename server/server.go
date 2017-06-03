@@ -85,7 +85,7 @@ func currentTimeFn() time.Time {
 func init() {
 	http.HandleFunc("/token", handlers.NewTokenHandler(
 		tokenHandlerConfig,
-		oauth.DefaultClientLookup,
+		oauth.InMemoryClientStore{},
 		defaultTokenGenerator,
 		tokenStore,
 		currentTimeFn))

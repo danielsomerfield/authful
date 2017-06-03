@@ -31,7 +31,7 @@ type TokenStore interface {
 
 func NewTokenHandler(
 	config TokenHandlerConfig,
-	clientLookup oauth.ClientLookupFn,
+	clientLookup oauth.ClientStore,
 	tokenGenerator TokenGeneratorFn,
 	tokenStore TokenStore,
 	currentTimeFn CurrentTimeFn) func(http.ResponseWriter, *http.Request) {
@@ -42,7 +42,7 @@ func NewTokenHandler(
 }
 
 func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
-	clientLookup oauth.ClientLookupFn, tokenGenerator TokenGeneratorFn, tokenStore TokenStore, currentTimeFn CurrentTimeFn) {
+	clientLookup oauth.ClientStore, tokenGenerator TokenGeneratorFn, tokenStore TokenStore, currentTimeFn CurrentTimeFn) {
 
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
@@ -60,7 +60,7 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		return
 	}
 
-	client, err := clientLookup(tokenRequest.ClientId)
+	client, err := clientLookup.LookupClient(tokenRequest.ClientId)
 	if client == nil || !client.CheckSecret(tokenRequest.ClientSecret) {
 		if client == nil {
 			log.Printf("Attempt to find invalid client by id \"%s\"", tokenRequest.ClientId)

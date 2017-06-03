@@ -2,10 +2,21 @@ package oauth
 
 import "errors"
 
-type ClientLookupFn func(clientId string) (Client, error)
+type ClientStore interface {
+	LookupClient(clientId string) (Client, error)
+	RegisterClient(clientId string, client Client) error
+}
 
-func DefaultClientLookup(clientId string) (Client, error) {
+type InMemoryClientStore struct {
+
+}
+
+func (InMemoryClientStore) LookupClient(clientId string) (Client, error) {
 	return nil, errors.New("NYI")
+}
+
+func (InMemoryClientStore) RegisterClient(clientId string, client Client) error {
+	return errors.New("NYI")
 }
 
 type DefaultClient struct {

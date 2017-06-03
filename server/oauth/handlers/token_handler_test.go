@@ -31,16 +31,6 @@ func (mc MockClient) GetScopes() []string {
 	return mc.scope
 }
 
-func mockClientLookup(clientId string) (oauth.Client, error) {
-	if clientId == validClientId {
-		return MockClient{
-			scope: []string{"scope1", "scope2"},
-		}, nil
-	} else {
-		return nil, nil
-	}
-}
-
 func mockTokenGenerator() string {
 	return "mock-token"
 }
@@ -65,6 +55,28 @@ func (m MockTokenStore) reset() {
 	m.storedTokens = map[string]TokenMetaData{}
 }
 
+type MockClientStore struct {
+
+}
+
+var mockClientStore = MockClientStore {
+
+}
+
+func (MockClientStore) RegisterClient(clientId string, client oauth.Client) error {
+	return errors.New("NYI")
+}
+
+func (MockClientStore) LookupClient(clientId string) (oauth.Client, error) {
+	if clientId == validClientId {
+		return MockClient{
+			scope: []string{"scope1", "scope2"},
+		}, nil
+	} else {
+		return nil, nil
+	}
+}
+
 var mockNow = time.Now()
 
 func mockCurrentTimeFn() time.Time {
@@ -73,7 +85,7 @@ func mockCurrentTimeFn() time.Time {
 
 
 func init() {
-	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, mockClientLookup, mockTokenGenerator, mockTokenStore, mockCurrentTimeFn))
+	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, mockClientStore, mockTokenGenerator, mockTokenStore, mockCurrentTimeFn))
 	go http.ListenAndServe(":8080", nil)
 	mockTokenStore.reset()
 }
