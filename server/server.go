@@ -3,8 +3,6 @@ package server
 import (
 	"net/http"
 	"fmt"
-	"encoding/base64"
-	"net/url"
 	"log"
 	"github.com/danielsomerfield/authful/server/oauth"
 	"github.com/danielsomerfield/authful/server/oauth/handlers"
@@ -27,17 +25,7 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("{\"status\":\"ok\"}"))
 }
 
-type Credentials struct {
-	ClientId     string
-	ClientSecret string
-}
-
-func (c Credentials) String() string {
-	creds := fmt.Sprintf("{%s}:{%s}", url.QueryEscape(c.ClientId), url.QueryEscape(c.ClientSecret))
-	return base64.StdEncoding.EncodeToString([]byte(creds))
-}
-
-func (server *AuthServer) Start() *Credentials {
+func (server *AuthServer) Start() (*oauth.Credentials, error) {
 	go func() {
 		httpServer := http.Server{Addr: fmt.Sprintf(":%v", server.port)}
 		err := httpServer.ListenAndServe()
@@ -47,13 +35,11 @@ func (server *AuthServer) Start() *Credentials {
 			log.Printf("Server started on port %v\n", server.port)
 		}
 	}()
-	clientId := "CID"
-	clientSecret := "Secret"
-	credentials := Credentials{
-		ClientId:     clientId, //TODO: real random id and secret and store client
-		ClientSecret: clientSecret,
-	}
-	return &credentials
+
+	//TODO: make generation of startup credentials a configuration option
+
+	return clientStore.RegisterClient("Root Admin", []string{"administrate"})
+
 }
 
 func (server *AuthServer) Stop() error {
@@ -64,12 +50,11 @@ func defaultTokenGenerator() string {
 	return "TODO"
 }
 
-var tokenHandlerConfig = handlers.TokenHandlerConfig {
+var tokenHandlerConfig = handlers.TokenHandlerConfig{
 	DefaultTokenExpiration: 3600,
 }
 
 type DefaultTokenStore struct {
-
 }
 
 func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData handlers.TokenMetaData) {
@@ -77,6 +62,7 @@ func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData handl
 }
 
 var tokenStore = DefaultTokenStore{}
+var clientStore = oauth.NewInMemoryClientStore()
 
 func currentTimeFn() time.Time {
 	return time.Now()
@@ -85,7 +71,7 @@ func currentTimeFn() time.Time {
 func init() {
 	http.HandleFunc("/token", handlers.NewTokenHandler(
 		tokenHandlerConfig,
-		oauth.InMemoryClientStore{},
+		clientStore.LookupClient,
 		defaultTokenGenerator,
 		tokenStore,
 		currentTimeFn))

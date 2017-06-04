@@ -7,6 +7,7 @@ import (
 	"time"
 	"github.com/danielsomerfield/authful/server"
 	"net/http"
+	"github.com/danielsomerfield/authful/server/oauth"
 )
 
 type HealthCheck struct {
@@ -39,12 +40,15 @@ func WaitForServer(server *server.AuthServer) error {
 	return err
 }
 
-func RunServer() (*server.AuthServer, *server.Credentials, error) {
+func RunServer() (*server.AuthServer, *oauth.Credentials, error) {
 	authServer := server.NewAuthServer()
 
-	var credentials *server.Credentials
-	credentials = authServer.Start()
-	err := WaitForServer(authServer)
+	var credentials *oauth.Credentials
+	credentials, err := authServer.Start()
+
+	if err := WaitForServer(authServer); err != nil {
+		return nil, nil, err
+	}
 
 	return authServer, credentials, err
 }

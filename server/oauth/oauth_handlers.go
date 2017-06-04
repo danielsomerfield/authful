@@ -31,11 +31,6 @@ func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
 	//Authenticate RO and ask for approval of request
 }
 
-type Client interface {
-	CheckSecret(secret string) bool
-	GetScopes() []string
-}
-
 func getClient(clientId string) *Client {
 	return nil
 }

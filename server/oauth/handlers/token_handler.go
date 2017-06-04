@@ -31,18 +31,18 @@ type TokenStore interface {
 
 func NewTokenHandler(
 	config TokenHandlerConfig,
-	clientLookup oauth.ClientStore,
+	clientLookupFn oauth.ClientLookupFn,
 	tokenGenerator TokenGeneratorFn,
 	tokenStore TokenStore,
 	currentTimeFn CurrentTimeFn) func(http.ResponseWriter, *http.Request) {
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		TokenHandler(w, req, config, clientLookup, tokenGenerator, tokenStore, currentTimeFn)
+		TokenHandler(w, req, config, clientLookupFn, tokenGenerator, tokenStore, currentTimeFn)
 	}
 }
 
 func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
-	clientLookup oauth.ClientStore, tokenGenerator TokenGeneratorFn, tokenStore TokenStore, currentTimeFn CurrentTimeFn) {
+	clientLookupFn oauth.ClientLookupFn, tokenGenerator TokenGeneratorFn, tokenStore TokenStore, currentTimeFn CurrentTimeFn) {
 
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
@@ -60,9 +60,11 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		return
 	}
 
-	client, err := clientLookup.LookupClient(tokenRequest.ClientId)
-	if client == nil || !client.CheckSecret(tokenRequest.ClientSecret) {
-		if client == nil {
+	client, err := clientLookupFn(tokenRequest.ClientId)
+	if err != nil || client == nil || !client.CheckSecret(tokenRequest.ClientSecret) {
+		if err != nil {
+			log.Printf("Failure trying to look up client: %+v", err)
+		} else if client == nil {
 			log.Printf("Attempt to find invalid client by id \"%s\"", tokenRequest.ClientId)
 		} else {
 			log.Printf("Bad secret for client id \"%s\"", tokenRequest.ClientId)
