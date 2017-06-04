@@ -1,4 +1,4 @@
-package handlers
+package oauth
 
 import (
 	"testing"
@@ -8,10 +8,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"reflect"
-	"github.com/danielsomerfield/authful/server/oauth"
 	"time"
 	"bytes"
 	"errors"
+	"github.com/danielsomerfield/authful/server/service/oauth"
 )
 
 var validClientId = "valid-client-id"
@@ -43,15 +43,14 @@ type MockTokenStore struct {
 	storedTokens map[string]TokenMetaData
 }
 
-var mockTokenStore = MockTokenStore {
-	storedTokens:map[string]TokenMetaData{},
+var mockTokenStore = MockTokenStore{
+	storedTokens: map[string]TokenMetaData{},
 }
 
 func (m MockTokenStore) StoreToken(token string, clientMetaData TokenMetaData) error {
 	m.storedTokens[token] = clientMetaData
 	return nil
 }
-
 
 func LookupClientFn(clientId string) (oauth.Client, error) {
 	if clientId == validClientId {
@@ -68,7 +67,6 @@ var mockNow = time.Now()
 func mockCurrentTimeFn() time.Time {
 	return mockNow
 }
-
 
 func init() {
 	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
@@ -88,7 +86,7 @@ func TestTokenHandler_RejectsGetRequest(t *testing.T) {
 }
 
 type TokenResponse struct {
-	json      map[string]interface{}
+	json       map[string]interface{}
 	httpStatus int
 	err        error
 }
@@ -147,7 +145,7 @@ func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, c
 		}
 	}
 	return &TokenResponse{
-		json:      jwt,
+		json:       jwt,
 		httpStatus: response.StatusCode,
 		err:        nil,
 	}
@@ -168,7 +166,7 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 			"access_token": "mock-token",
 			"token_type":   "Bearer",
 			"expires_in":   json.Number("3600"),
-			"scope": "scope1 scope2",
+			"scope":        "scope1 scope2",
 		}
 
 		if !reflect.DeepEqual(response.json, expected) {
@@ -178,9 +176,9 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 
 		if tokenMetaData, ok := mockTokenStore.storedTokens["mock-token"]; ok {
 			expectedTokenMetaData := TokenMetaData{
-				token: "mock-token",
+				token:      "mock-token",
 				expiration: mockNow.Add(time.Duration(tokenHandlerConfig.DefaultTokenExpiration) * time.Second),
-				clientId: validClientId,
+				clientId:   validClientId,
 			}
 			if tokenMetaData != expectedTokenMetaData {
 				return fmt.Errorf("Token meta data didn't match. \nExpected: %+v. \nWas:      %+v\n",
@@ -239,14 +237,12 @@ func TestTokenHandler_IncorrectSecret(t *testing.T) {
 	}, t)
 }
 
-
 func TestTokenHandler_UnknownGrantType(t *testing.T) {
 	doTokenEndpointRequestWithBody("not real", validClientId, validClientSecret).
 		thenAssert(func(response *TokenResponse) error {
 		if response.httpStatus != 400 {
 			return fmt.Errorf("Expected 400, but got %d", response.httpStatus)
 		}
-
 
 		if response.json["error"] != "unsupported_grant_type" {
 			return fmt.Errorf("Got unexpected error %s but should have been 'unsupported_grant_type'",
@@ -262,7 +258,6 @@ func TestTokenHandler_ClientCredentialsWithInvalidScope(t *testing.T) {
 		if response.httpStatus != 400 {
 			return fmt.Errorf("Expected 400, but got %d", response.httpStatus)
 		}
-
 
 		if response.json["error"] != "invalid_scope" {
 			return fmt.Errorf("Got unexpected error %s but should have been 'unsupported_grant_type'",

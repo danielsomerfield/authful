@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"fmt"
 	"log"
-	"github.com/danielsomerfield/authful/server/oauth"
-	"github.com/danielsomerfield/authful/server/oauth/handlers"
+	oauth_handlers "github.com/danielsomerfield/authful/server/handlers/oauth"
+	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
 	"time"
 	"github.com/danielsomerfield/authful/util"
 )
@@ -26,7 +26,7 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("{\"status\":\"ok\"}"))
 }
 
-func (server *AuthServer) Start() (*oauth.Credentials, error) {
+func (server *AuthServer) Start() (*oauth_service.Credentials, error) {
 	go func() {
 		httpServer := http.Server{Addr: fmt.Sprintf(":%v", server.port)}
 		err := httpServer.ListenAndServe()
@@ -51,31 +51,31 @@ func defaultTokenGenerator() string {
 	return util.GenerateRandomString(25)
 }
 
-var tokenHandlerConfig = handlers.TokenHandlerConfig{
+var tokenHandlerConfig = oauth_handlers.TokenHandlerConfig{
 	DefaultTokenExpiration: 3600,
 }
 
 type DefaultTokenStore struct {
 }
 
-func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData handlers.TokenMetaData) error {
+func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData oauth_handlers.TokenMetaData) error {
 	return nil
 }
 
 var tokenStore = DefaultTokenStore{}
-var clientStore = oauth.NewInMemoryClientStore()
+var clientStore = oauth_service.NewInMemoryClientStore()
 
 func currentTimeFn() time.Time {
 	return time.Now()
 }
 
 func init() {
-	http.HandleFunc("/token", handlers.NewTokenHandler(
+	http.HandleFunc("/token", oauth_handlers.NewTokenHandler(
 		tokenHandlerConfig,
 		clientStore.LookupClient,
 		defaultTokenGenerator,
 		tokenStore.StoreToken,
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/authorize", oauth.AuthorizeHandler)
+	http.HandleFunc("/authorize", oauth_handlers.AuthorizeHandler)
 }

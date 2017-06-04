@@ -1,4 +1,4 @@
-package request
+package wire
 
 import (
 	"net/url"
@@ -8,26 +8,26 @@ import (
 	"net/http"
 )
 
-type mapping struct {
+type Mapping struct {
 	field    *string
 	required bool
 }
 
-func required(field *string) *mapping {
-	return &mapping{
+func Required(field *string) *Mapping {
+	return &Mapping{
 		field:    field,
 		required: true,
 	}
 }
 
-func optional(field *string) *mapping {
-	return &mapping{
+func Optional(field *string) *Mapping {
+	return &Mapping{
 		field:    field,
 		required: false,
 	}
 }
 
-func ParseRequest(httpRequest http.Request, fields map[string]*mapping) error {
+func ParseRequest(httpRequest http.Request, fields map[string]*Mapping) error {
 	missingFields := []string{}
 
 	httpRequest.ParseForm()
@@ -44,7 +44,7 @@ func ParseRequest(httpRequest http.Request, fields map[string]*mapping) error {
 	}
 }
 
-func setValueOnRequest(fieldName string, values url.Values, missingFields *[]string, field *mapping) {
+func setValueOnRequest(fieldName string, values url.Values, missingFields *[]string, field *Mapping) {
 	value := values.Get(fieldName)
 	if strings.TrimSpace(value) == "" && field.required {
 		*missingFields = append(*missingFields, fieldName)

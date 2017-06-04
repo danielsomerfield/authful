@@ -1,13 +1,12 @@
-package handlers
+package oauth
 
 import (
 	"net/http"
-	"github.com/danielsomerfield/authful/server/request"
 	"log"
 	"encoding/json"
-	"github.com/danielsomerfield/authful/server/wireTypes"
+	oauth_wire "github.com/danielsomerfield/authful/server/wire/oauth"
+	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
 	"strings"
-	"github.com/danielsomerfield/authful/server/oauth"
 	"time"
 )
 
@@ -20,16 +19,16 @@ type TokenHandlerConfig struct {
 }
 
 type TokenMetaData struct {
-	token string
+	token      string
 	expiration time.Time
-	clientId string
+	clientId   string
 }
 
-type StoreTokenFn func (token string, tokenMetaData TokenMetaData) error
+type StoreTokenFn func(token string, tokenMetaData TokenMetaData) error
 
 func NewTokenHandler(
 	config TokenHandlerConfig,
-	clientLookupFn oauth.ClientLookupFn,
+	clientLookupFn oauth_service.ClientLookupFn,
 	tokenGenerator TokenGeneratorFn,
 	storeTokenFn StoreTokenFn,
 	currentTimeFn CurrentTimeFn) func(http.ResponseWriter, *http.Request) {
@@ -40,7 +39,7 @@ func NewTokenHandler(
 }
 
 func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
-	clientLookupFn oauth.ClientLookupFn, tokenGenerator TokenGeneratorFn, storeTokenFn StoreTokenFn, currentTimeFn CurrentTimeFn) {
+	clientLookupFn oauth_service.ClientLookupFn, tokenGenerator TokenGeneratorFn, storeTokenFn StoreTokenFn, currentTimeFn CurrentTimeFn) {
 
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
@@ -48,12 +47,12 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		return
 	}
 
-	tokenRequest, err := request.ParseTokenRequest(*req)
+	tokenRequest, err := oauth_wire.ParseTokenRequest(*req)
 	if err != nil {
-		if err == request.ERR_INVALID_CLIENT {
-			oauth.Unauthorized(err.Error(), w)
+		if err == oauth_wire.ERR_INVALID_CLIENT {
+			Unauthorized(err.Error(), w)
 		} else {
-			oauth.InvalidRequest(err.Error(), w)
+			InvalidRequest(err.Error(), w)
 		}
 		return
 	}
@@ -67,7 +66,7 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		} else {
 			log.Printf("Bad secret for client id \"%s\"", tokenRequest.ClientId)
 		}
-		oauth.JsonError("invalid_client", "Invalid client.", "", 401, w)
+		JsonError("invalid_client", "Invalid client.", "", 401, w)
 		return
 	}
 
@@ -77,7 +76,7 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		unknownScopes := elementsNotIn(requestedScopes, client.GetScopes())
 		if len(unknownScopes) > 0 {
 			log.Printf("Request contained unexpected scopes: %+v", unknownScopes)
-			oauth.JsonError("invalid_scope", "a requested was unknown", "",
+			JsonError("invalid_scope", "a requested was unknown", "",
 				http.StatusBadRequest, w)
 			return
 		}
@@ -86,20 +85,20 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		token := tokenGenerator()
 
 		storeTokenFn(token, TokenMetaData{
-			token: token,
+			token:      token,
 			expiration: currentTimeFn().Add(time.Duration(config.DefaultTokenExpiration) * time.Second),
-			clientId: tokenRequest.ClientId,
+			clientId:   tokenRequest.ClientId,
 		})
 
-		bytes, err := json.Marshal(wireTypes.TokenResponse{
+		bytes, err := json.Marshal(oauth_wire.TokenResponse{
 			AccessToken: token,
 			TokenType:   "Bearer",
 			ExpiresIn:   config.DefaultTokenExpiration,
 			Scope:       strings.Join(requestedScopes, " "),
 		})
-		oauth.WriteOrError(w, bytes, err)
+		WriteOrError(w, bytes, err)
 	} else {
-		oauth.JsonError("unsupported_grant_type", "the grant type was missing or unknown", "",
+		JsonError("unsupported_grant_type", "the grant type was missing or unknown", "",
 			http.StatusBadRequest, w)
 	}
 }

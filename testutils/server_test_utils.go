@@ -7,7 +7,7 @@ import (
 	"time"
 	"github.com/danielsomerfield/authful/server"
 	"net/http"
-	"github.com/danielsomerfield/authful/server/oauth"
+	"github.com/danielsomerfield/authful/server/service/oauth"
 )
 
 type HealthCheck struct {

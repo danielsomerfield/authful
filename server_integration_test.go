@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"strings"
 	"encoding/json"
-	"github.com/danielsomerfield/authful/server/wireTypes"
+	"github.com/danielsomerfield/authful/server/wire"
 	"fmt"
 	"golang.org/x/oauth2/clientcredentials"
 	"context"
-	"github.com/danielsomerfield/authful/server/oauth"
+	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
+	oauth_wire "github.com/danielsomerfield/authful/server/wire/oauth"
 )
 
-func requestAdminToken(credentials oauth.Credentials) (*wireTypes.TokenResponse, error) {
+func requestAdminToken(credentials oauth_service.Credentials) (*oauth_wire.TokenResponse, error) {
 	var err error = nil
 
 	var request *http.Request
@@ -33,7 +34,7 @@ func requestAdminToken(credentials oauth.Credentials) (*wireTypes.TokenResponse,
 
 	body, err = ioutil.ReadAll(response.Body)
 
-	tokenResponse := wireTypes.TokenResponse{}
+	tokenResponse := oauth_wire.TokenResponse{}
 	err = json.Unmarshal(body, &tokenResponse)
 	if err == nil {
 		return &tokenResponse, nil
@@ -45,6 +46,7 @@ func requestAdminToken(credentials oauth.Credentials) (*wireTypes.TokenResponse,
 //TODO: disabled until fixing the issue with storing the default admin client creds
 func TestClientCredentialsEnd2End(t *testing.T) {
 	go func() {
+		//TODO register this protected resource provider as a client so it can hit the token introspection endpoint
 		httpServer := http.Server{Addr: ":8181"}
 		http.HandleFunc("/test", func(w http.ResponseWriter, request *http.Request) {
 			body, err := ioutil.ReadAll(request.Body)
@@ -80,6 +82,8 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 		t.Errorf("Unexpected error %+v", err)
 		return
 	}
+	//TODO: hit the token introspection endpoint with the token and make sure it succeeds
+	//TODO: hit the token introspection endpoint with a bad token and make sure it fails
 	fmt.Printf("Body: %s", string(body))
 }
 
@@ -103,14 +107,14 @@ func TestErrorResponse(t *testing.T) {
 		return
 	}
 
-	errorResponse := wireTypes.ErrorResponse{}
+	errorResponse := wire.ErrorResponse{}
 
 	if err := json.Unmarshal(body, &errorResponse); err != nil {
 		t.Errorf("Unexpected error %+v", err)
 		return
 	}
 
-	expected := wireTypes.ErrorResponse{
+	expected := wire.ErrorResponse{
 		Error:            "invalid_request",
 		ErrorDescription: "The following fields are required: [grant_type]",
 		ErrorURI:         "",

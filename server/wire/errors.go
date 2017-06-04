@@ -1,4 +1,4 @@
-package wireTypes
+package wire
 
 type ErrorResponse struct {
 	Error            string `json:"error"`
