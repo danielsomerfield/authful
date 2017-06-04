@@ -25,24 +25,22 @@ type TokenMetaData struct {
 	clientId string
 }
 
-type TokenStore interface {
-	StoreToken(token string, tokenMetaData TokenMetaData)
-}
+type StoreTokenFn func (token string, tokenMetaData TokenMetaData) error
 
 func NewTokenHandler(
 	config TokenHandlerConfig,
 	clientLookupFn oauth.ClientLookupFn,
 	tokenGenerator TokenGeneratorFn,
-	tokenStore TokenStore,
+	storeTokenFn StoreTokenFn,
 	currentTimeFn CurrentTimeFn) func(http.ResponseWriter, *http.Request) {
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		TokenHandler(w, req, config, clientLookupFn, tokenGenerator, tokenStore, currentTimeFn)
+		TokenHandler(w, req, config, clientLookupFn, tokenGenerator, storeTokenFn, currentTimeFn)
 	}
 }
 
 func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
-	clientLookupFn oauth.ClientLookupFn, tokenGenerator TokenGeneratorFn, tokenStore TokenStore, currentTimeFn CurrentTimeFn) {
+	clientLookupFn oauth.ClientLookupFn, tokenGenerator TokenGeneratorFn, storeTokenFn StoreTokenFn, currentTimeFn CurrentTimeFn) {
 
 	if err := req.ParseForm(); err != nil {
 		log.Printf("Failed with following error: %+v", err)
@@ -87,7 +85,7 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		w.Header().Set("Content-Type", "application/json")
 		token := tokenGenerator()
 
-		tokenStore.StoreToken(token, TokenMetaData{
+		storeTokenFn(token, TokenMetaData{
 			token: token,
 			expiration: currentTimeFn().Add(time.Duration(config.DefaultTokenExpiration) * time.Second),
 			clientId: tokenRequest.ClientId,

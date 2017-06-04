@@ -58,8 +58,8 @@ var tokenHandlerConfig = handlers.TokenHandlerConfig{
 type DefaultTokenStore struct {
 }
 
-func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData handlers.TokenMetaData) {
-
+func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData handlers.TokenMetaData) error {
+	return nil
 }
 
 var tokenStore = DefaultTokenStore{}
@@ -74,7 +74,7 @@ func init() {
 		tokenHandlerConfig,
 		clientStore.LookupClient,
 		defaultTokenGenerator,
-		tokenStore,
+		tokenStore.StoreToken,
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", oauth.AuthorizeHandler)

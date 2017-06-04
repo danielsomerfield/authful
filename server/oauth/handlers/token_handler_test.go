@@ -47,8 +47,9 @@ var mockTokenStore = MockTokenStore {
 	storedTokens:map[string]TokenMetaData{},
 }
 
-func (m MockTokenStore) StoreToken(token string, clientMetaData TokenMetaData) {
+func (m MockTokenStore) StoreToken(token string, clientMetaData TokenMetaData) error {
 	m.storedTokens[token] = clientMetaData
+	return nil
 }
 
 
@@ -70,7 +71,7 @@ func mockCurrentTimeFn() time.Time {
 
 
 func init() {
-	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore, mockCurrentTimeFn))
+	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
 	go http.ListenAndServe(":8080", nil)
 }
 
