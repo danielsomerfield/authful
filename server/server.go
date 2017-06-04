@@ -7,6 +7,7 @@ import (
 	"github.com/danielsomerfield/authful/server/oauth"
 	"github.com/danielsomerfield/authful/server/oauth/handlers"
 	"time"
+	"github.com/danielsomerfield/authful/util"
 )
 
 type AuthServer struct {
@@ -47,7 +48,7 @@ func (server *AuthServer) Stop() error {
 }
 
 func defaultTokenGenerator() string {
-	return "TODO"
+	return util.GenerateRandomString(25)
 }
 
 var tokenHandlerConfig = handlers.TokenHandlerConfig{

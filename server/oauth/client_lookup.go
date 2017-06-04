@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"encoding/base64"
-	"math/rand"
+	"github.com/danielsomerfield/authful/util"
 )
 
 type Client interface {
@@ -39,8 +39,8 @@ func (store inMemoryClientStore) LookupClient(clientId string) (Client, error) {
 }
 
 func (store inMemoryClientStore) RegisterClient(name string, scopes []string) (*Credentials, error) {
-	clientId := generateRandomString(30)
-	secret := generateRandomString(60) //TODO: replace with hash storage
+	clientId := util.GenerateRandomString(30)
+	secret := util.GenerateRandomString(60) //TODO: replace with hash storage
 	store.clients[clientId] = DefaultClient{
 		name:     name,
 		clientId: clientId,
@@ -51,16 +51,6 @@ func (store inMemoryClientStore) RegisterClient(name string, scopes []string) (*
 		ClientId:     clientId,
 		ClientSecret: secret,
 	}, nil
-}
-
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-func generateRandomString(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
 }
 
 type DefaultClient struct {
