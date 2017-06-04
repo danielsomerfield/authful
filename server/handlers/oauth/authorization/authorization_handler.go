@@ -1,9 +1,10 @@
-package oauth
+package authorization
 
 import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/wire/oauth"
 	oauth2 "github.com/danielsomerfield/authful/server/service/oauth"
+	"github.com/danielsomerfield/authful/server/handlers"
 )
 
 func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
@@ -11,7 +12,7 @@ func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
 
 	authorizationRequest, err := oauth.ParseAuthorizeRequest(*req)
 	if err != nil {
-		InvalidRequest(err.Error(), w)
+		handlers.InvalidRequest(err.Error(), w)
 		return
 	} else {
 		client := getClient(authorizationRequest.ClientId)

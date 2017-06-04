@@ -87,7 +87,7 @@ func TestTokenRequestWithBearerInHeadersAndBodyFails(t *testing.T) {
 			"client_secret": []string{"the-client-secret"},
 		},
 		Header: map[string][]string{
-			"Authorization": {"Bearer " + token},
+			"Authorization": {"Basic " + token},
 		},
 	}
 	_, err := ParseTokenRequest(req)

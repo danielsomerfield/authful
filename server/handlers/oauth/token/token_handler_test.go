@@ -1,4 +1,4 @@
-package oauth
+package token
 
 import (
 	"testing"
@@ -111,14 +111,9 @@ func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, c
 	if scope != "" {
 		body = body + "&scope=" + scope
 	}
-	post, err := http.NewRequest("POST", "http://localhost:8080/token",
+	post, _ := http.NewRequest("POST", "http://localhost:8080/token",
 		strings.NewReader(body))
-
-	if post.Header.Set("Content-Type", "application/x-www-form-urlencoded"); err != nil {
-		return &TokenResponse{
-			err: err,
-		}
-	}
+	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	response, err := http.DefaultClient.Do(post)
 	if err != nil {
@@ -135,7 +130,6 @@ func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, c
 	}
 
 	var jwt map[string]interface{}
-	//err = json.Unmarshal(responseBody, &jwt)
 	decoder := json.NewDecoder(bytes.NewBuffer(responseBody))
 	decoder.UseNumber()
 	decoder.Decode(&jwt)

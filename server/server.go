@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"fmt"
 	"log"
-	oauth_handlers "github.com/danielsomerfield/authful/server/handlers/oauth"
 	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
 	"time"
 	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/server/handlers/oauth/token"
+	"github.com/danielsomerfield/authful/server/handlers/oauth/authorization"
 )
 
 type AuthServer struct {
@@ -51,14 +52,14 @@ func defaultTokenGenerator() string {
 	return util.GenerateRandomString(25)
 }
 
-var tokenHandlerConfig = oauth_handlers.TokenHandlerConfig{
+var tokenHandlerConfig = token.TokenHandlerConfig{
 	DefaultTokenExpiration: 3600,
 }
 
 type DefaultTokenStore struct {
 }
 
-func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData oauth_handlers.TokenMetaData) error {
+func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData token.TokenMetaData) error {
 	return nil
 }
 
@@ -70,12 +71,12 @@ func currentTimeFn() time.Time {
 }
 
 func init() {
-	http.HandleFunc("/token", oauth_handlers.NewTokenHandler(
+	http.HandleFunc("/token", token.NewTokenHandler(
 		tokenHandlerConfig,
 		clientStore.LookupClient,
 		defaultTokenGenerator,
 		tokenStore.StoreToken,
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/authorize", oauth_handlers.AuthorizeHandler)
+	http.HandleFunc("/authorize", authorization.AuthorizeHandler)
 }

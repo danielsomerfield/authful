@@ -1,4 +1,4 @@
-package oauth
+package handlers
 
 import (
 	"net/http"

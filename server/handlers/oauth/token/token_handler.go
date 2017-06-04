@@ -1,4 +1,4 @@
-package oauth
+package token
 
 import (
 	"net/http"
@@ -8,6 +8,7 @@ import (
 	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
 	"strings"
 	"time"
+	"github.com/danielsomerfield/authful/server/handlers"
 )
 
 type CurrentTimeFn func() time.Time
@@ -50,9 +51,9 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 	tokenRequest, err := oauth_wire.ParseTokenRequest(*req)
 	if err != nil {
 		if err == oauth_wire.ERR_INVALID_CLIENT {
-			Unauthorized(err.Error(), w)
+			handlers.Unauthorized(err.Error(), w)
 		} else {
-			InvalidRequest(err.Error(), w)
+			handlers.InvalidRequest(err.Error(), w)
 		}
 		return
 	}
@@ -66,7 +67,7 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		} else {
 			log.Printf("Bad secret for client id \"%s\"", tokenRequest.ClientId)
 		}
-		JsonError("invalid_client", "Invalid client.", "", 401, w)
+		handlers.JsonError("invalid_client", "Invalid client.", "", 401, w)
 		return
 	}
 
@@ -76,7 +77,7 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		unknownScopes := elementsNotIn(requestedScopes, client.GetScopes())
 		if len(unknownScopes) > 0 {
 			log.Printf("Request contained unexpected scopes: %+v", unknownScopes)
-			JsonError("invalid_scope", "a requested was unknown", "",
+			handlers.JsonError("invalid_scope", "a requested was unknown", "",
 				http.StatusBadRequest, w)
 			return
 		}
@@ -96,9 +97,9 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 			ExpiresIn:   config.DefaultTokenExpiration,
 			Scope:       strings.Join(requestedScopes, " "),
 		})
-		WriteOrError(w, bytes, err)
+		handlers.WriteOrError(w, bytes, err)
 	} else {
-		JsonError("unsupported_grant_type", "the grant type was missing or unknown", "",
+		handlers.JsonError("unsupported_grant_type", "the grant type was missing or unknown", "",
 			http.StatusBadRequest, w)
 	}
 }
