@@ -40,14 +40,14 @@ var tokenHandlerConfig = TokenHandlerConfig{
 }
 
 type MockTokenStore struct {
-	storedTokens map[string]TokenMetaData
+	storedTokens map[string]oauth.TokenMetaData
 }
 
 var mockTokenStore = MockTokenStore{
-	storedTokens: map[string]TokenMetaData{},
+	storedTokens: map[string]oauth.TokenMetaData{},
 }
 
-func (m MockTokenStore) StoreToken(token string, clientMetaData TokenMetaData) error {
+func (m MockTokenStore) StoreToken(token string, clientMetaData oauth.TokenMetaData) error {
 	m.storedTokens[token] = clientMetaData
 	return nil
 }
@@ -169,10 +169,10 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 		}
 
 		if tokenMetaData, ok := mockTokenStore.storedTokens["mock-token"]; ok {
-			expectedTokenMetaData := TokenMetaData{
-				token:      "mock-token",
-				expiration: mockNow.Add(time.Duration(tokenHandlerConfig.DefaultTokenExpiration) * time.Second),
-				clientId:   validClientId,
+			expectedTokenMetaData := oauth.TokenMetaData{
+				Token:      "mock-token",
+				Expiration: mockNow.Add(time.Duration(tokenHandlerConfig.DefaultTokenExpiration) * time.Second),
+				ClientId:   validClientId,
 			}
 			if tokenMetaData != expectedTokenMetaData {
 				return fmt.Errorf("Token meta data didn't match. \nExpected: %+v. \nWas:      %+v\n",

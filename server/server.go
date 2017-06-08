@@ -59,7 +59,7 @@ var tokenHandlerConfig = token.TokenHandlerConfig{
 type DefaultTokenStore struct {
 }
 
-func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData token.TokenMetaData) error {
+func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData oauth_service.TokenMetaData) error {
 	return nil
 }
 

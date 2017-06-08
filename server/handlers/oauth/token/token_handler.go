@@ -19,13 +19,7 @@ type TokenHandlerConfig struct {
 	DefaultTokenExpiration int64
 }
 
-type TokenMetaData struct {
-	token      string
-	expiration time.Time
-	clientId   string
-}
-
-type StoreTokenFn func(token string, tokenMetaData TokenMetaData) error
+type StoreTokenFn func(token string, tokenMetaData oauth_service.TokenMetaData) error
 
 func NewTokenHandler(
 	config TokenHandlerConfig,
@@ -85,10 +79,10 @@ func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerC
 		w.Header().Set("Content-Type", "application/json")
 		token := tokenGenerator()
 
-		storeTokenFn(token, TokenMetaData{
-			token:      token,
-			expiration: currentTimeFn().Add(time.Duration(config.DefaultTokenExpiration) * time.Second),
-			clientId:   tokenRequest.ClientId,
+		storeTokenFn(token, oauth_service.TokenMetaData{
+			Token:      token,
+			Expiration: currentTimeFn().Add(time.Duration(config.DefaultTokenExpiration) * time.Second),
+			ClientId:   tokenRequest.ClientId,
 		})
 
 		bytes, err := json.Marshal(oauth_wire.TokenResponse{
