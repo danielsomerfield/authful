@@ -10,8 +10,7 @@ import (
 	"reflect"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"time"
-	"github.com/danielsomerfield/authful/server/handlers"
-	"os"
+	"net/http/httptest"
 )
 
 func mockRequestValidation(request http.Request) bool {
@@ -29,13 +28,6 @@ func mockGetTokenMetaDataFn(token string) *oauth.TokenMetaData {
 	return nil
 }
 
-func TestMain(m *testing.M) {
-	testServer := handlers.RunTestServer("/introspect", NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn))
-	result := m.Run()
-	testServer.Shutdown()
-	os.Exit(result)
-}
-
 var activeToken = "active_token"
 var validBearerToken = "valid-bearer-token"
 
@@ -44,14 +36,12 @@ func TestIntrospectionHandler_ApprovesValidToken(t *testing.T) {
 		strings.NewReader(fmt.Sprintf("token=%s", activeToken)))
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	post.Header.Set("Authorization", "Bearer "+validBearerToken)
-	response, err := http.DefaultClient.Do(post)
-	if err != nil {
-		t.Errorf("Unexpected error: %+v", err)
-		return
-	}
+	response := httptest.NewRecorder()
+	handler := http.HandlerFunc(NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn))
+	handler.ServeHTTP(response, post)
 
-	if response.StatusCode != 200 {
-		t.Errorf("Unexpected 200 but got %d", response.StatusCode)
+	if response.Code != 200 {
+		t.Errorf("Unexpected 200 but got %d", response.Code)
 		return
 	}
 

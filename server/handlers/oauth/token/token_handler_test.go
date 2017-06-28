@@ -12,8 +12,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/danielsomerfield/authful/server/service/oauth"
-	"github.com/danielsomerfield/authful/server/handlers"
-	"os"
+	"net/http/httptest"
 )
 
 var validClientId = "valid-client-id"
@@ -70,22 +69,14 @@ func mockCurrentTimeFn() time.Time {
 	return mockNow
 }
 
-func TestMain(m *testing.M) {
-	testServer := handlers.RunTestServer("/token", NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
-	result := m.Run()
-	testServer.Shutdown()
-	os.Exit(result)
-}
-
 func TestTokenHandler_RejectsGetRequest(t *testing.T) {
-	resp, err := http.Get("http://localhost:8080/token")
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
+	request, _ := http.NewRequest("GET", "http://localhost:8080/token", nil)
+	response := httptest.NewRecorder()
+	handler := http.HandlerFunc(NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
+	handler.ServeHTTP(response, request)
 
-	if resp.StatusCode != 400 {
-		t.Errorf("Expected 400 but got %d", resp.StatusCode)
+	if response.Code != 400 {
+		t.Errorf("Expected 400 but got %d", response.Code)
 	}
 }
 
@@ -119,12 +110,9 @@ func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, c
 		strings.NewReader(body))
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	response, err := http.DefaultClient.Do(post)
-	if err != nil {
-		return &TokenResponse{
-			err: err,
-		}
-	}
+	response := httptest.NewRecorder()
+	handler := http.HandlerFunc(NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
+	handler.ServeHTTP(response, post)
 
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -144,7 +132,7 @@ func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, c
 	}
 	return &TokenResponse{
 		json:       jwt,
-		httpStatus: response.StatusCode,
+		httpStatus: response.Code,
 		err:        nil,
 	}
 
