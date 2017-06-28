@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"reflect"
 	"github.com/danielsomerfield/authful/server/service/oauth"
+	"time"
 )
 
 func mockRequestValidation(request http.Request) bool {
@@ -16,11 +17,18 @@ func mockRequestValidation(request http.Request) bool {
 }
 
 func mockGetTokenMetaDataFn(token string) *oauth.TokenMetaData {
+	if token == activeToken {
+		return &oauth.TokenMetaData{
+			Token   :   token,
+			Expiration : time.Time{},
+			ClientId :  "",
+		}
+	}
 	return nil
 }
 
 func init() {
-	http.HandleFunc("/introspect", NewIntrospectionHandler(mockRequestValidation))
+	http.HandleFunc("/introspect", NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn))
 	go http.ListenAndServe(":8080", nil)
 }
 
@@ -28,7 +36,6 @@ var activeToken = "active_token"
 var validBearerToken = "valid-bearer-token"
 
 func TestIntrospectionHandler_ApprovesValidToken(t *testing.T) {
-	return
 	post, _ := http.NewRequest("POST", "http://localhost:8080/introspect",
 		strings.NewReader(fmt.Sprintf("token=%s", activeToken)))
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")

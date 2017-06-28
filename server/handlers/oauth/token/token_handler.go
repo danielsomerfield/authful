@@ -36,12 +36,6 @@ func NewTokenHandler(
 func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
 	clientLookupFn oauth_service.ClientLookupFn, tokenGenerator TokenGeneratorFn, storeTokenFn StoreTokenFn, currentTimeFn CurrentTimeFn) {
 
-	if err := req.ParseForm(); err != nil {
-		log.Printf("Failed with following error: %+v", err)
-		http.Error(w, "Server error", http.StatusInternalServerError)
-		return
-	}
-
 	tokenRequest, err := oauth_wire.ParseTokenRequest(*req)
 	if err != nil {
 		if err == oauth_wire.ERR_INVALID_CLIENT {

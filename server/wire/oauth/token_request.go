@@ -21,6 +21,11 @@ type TokenRequest struct {
 var ERR_INVALID_CLIENT = errors.New("invalid_client")
 
 func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
+
+	if err := httpRequest.ParseForm(); err != nil {
+		return nil, err
+	}
+
 	tokenRequest := TokenRequest{}
 
 	//TODO: add support for required fields for other grant types
