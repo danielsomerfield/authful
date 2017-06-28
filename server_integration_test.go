@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"github.com/danielsomerfield/authful/testutils"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -13,13 +12,39 @@ import (
 	"context"
 	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
 	oauth_wire "github.com/danielsomerfield/authful/server/wire/oauth"
+	"time"
+	"github.com/danielsomerfield/authful/server"
+	"os"
+	"log"
 )
+
+var creds *oauth_service.Credentials = nil
+
+func TestMain(m *testing.M) {
+	var authServer *server.AuthServer
+	var err error
+
+	authServer, creds, err = RunServer()
+	if err != nil {
+		log.Fatalf("Unexpected error on startup: %+v", err)
+		return
+	}
+	result := m.Run()
+	err = authServer.Stop()
+
+	if err != nil {
+		log.Fatalf("Unexpected error on stop: %+v", err)
+		return
+	}
+
+	os.Exit(result)
+}
 
 func requestAdminToken(credentials oauth_service.Credentials) (*oauth_wire.TokenResponse, error) {
 	var err error = nil
 
 	var request *http.Request
-	if request, err = http.NewRequest("POST", "http://localhost:8080/token",
+	if request, err = http.NewRequest("POST", "http://localhost:8081/token",
 		strings.NewReader("grant_type=client_credentials")); err != nil {
 		return nil, err
 	}
@@ -56,18 +81,11 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 
 	}()
 
-	authServer, creds, err := testutils.RunServer()
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
-	defer authServer.Stop()
-
 	ctx := context.Background()
 	config := clientcredentials.Config{
 		ClientID:     creds.ClientId,
 		ClientSecret: creds.ClientSecret,
-		TokenURL:     "http://localhost:8080/token",
+		TokenURL:     "http://localhost:8081/token",
 		Scopes:       []string{},
 	}
 
@@ -88,9 +106,8 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 }
 
 func TestErrorResponse(t *testing.T) {
-	authServer, _, _ := testutils.RunServer()
-	defer authServer.Stop()
-	response, err := http.Post("http://localhost:8080/token", "application/json", strings.NewReader(""))
+
+	response, err := http.Post("http://localhost:8081/token", "application/json", strings.NewReader(""))
 	if err != nil {
 		t.Errorf("Unexpected error %+v", err)
 		return
@@ -127,10 +144,7 @@ func TestErrorResponse(t *testing.T) {
 
 func TestAuthorize(t *testing.T) {
 
-	authServer, credentials, err := testutils.RunServer()
-	defer authServer.Stop()
-
-	_, err = requestAdminToken(*credentials)
+	_, err := requestAdminToken(*creds)
 	if err != nil {
 		t.Errorf("Unexpected error %+v", err)
 	}
@@ -142,7 +156,7 @@ func TestAuthorize(t *testing.T) {
 	//Register a user
 
 	//Hit the authorization endpoint
-	//resp, err = http.Get("http://localhost:8080/authorize?request_type=code?client_id=1234")
+	//resp, err = http.Get("http://localhost:8081/authorize?request_type=code?client_id=1234")
 	//
 	////Ensure that the user is authentcated and prompted for approval
 	//if err == nil {
@@ -157,4 +171,48 @@ func TestAuthorize(t *testing.T) {
 	//} else {
 	//
 	//}
+}
+
+type HealthCheck struct {
+	Status string `json:"status"`
+}
+
+func WaitForServer(server *server.AuthServer) error {
+	var err error = nil
+	var resp *http.Response = nil
+	var healthcheck HealthCheck
+	var body []byte
+
+	for i := 0; i < 25; i++ {
+		resp, err = http.Get("http://localhost:8081/health")
+
+		if err == nil {
+			if resp.StatusCode == 200 {
+				body, err = ioutil.ReadAll(resp.Body)
+				if err == nil {
+					err = json.Unmarshal(body, &healthcheck)
+					return err
+				}
+				return nil
+			} else {
+				err = fmt.Errorf("Expected status code 200 but was %s", resp.StatusCode)
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	return err
+}
+
+func RunServer() (*server.AuthServer, *oauth_service.Credentials, error) {
+	authServer := server.NewAuthServer(8081 )
+
+	var credentials *oauth_service.Credentials
+	credentials, err := authServer.Start()
+
+	if err := WaitForServer(authServer); err != nil {
+		return nil, nil, err
+	}
+
+	return authServer, credentials, err
 }

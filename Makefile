@@ -3,3 +3,6 @@ install_deps:
 
 test: install_deps
 	go test ./...
+
+clean:
+	go clean -r -i

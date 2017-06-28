@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"time"
+	"github.com/danielsomerfield/authful/server/handlers"
+	"os"
 )
 
 func mockRequestValidation(request http.Request) bool {
@@ -19,17 +21,19 @@ func mockRequestValidation(request http.Request) bool {
 func mockGetTokenMetaDataFn(token string) *oauth.TokenMetaData {
 	if token == activeToken {
 		return &oauth.TokenMetaData{
-			Token   :   token,
-			Expiration : time.Time{},
-			ClientId :  "",
+			Token:      token,
+			Expiration: time.Time{},
+			ClientId:   "",
 		}
 	}
 	return nil
 }
 
-func init() {
-	http.HandleFunc("/introspect", NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn))
-	go http.ListenAndServe(":8080", nil)
+func TestMain(m *testing.M) {
+	testServer := handlers.RunTestServer("/introspect", NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn))
+	result := m.Run()
+	testServer.Shutdown()
+	os.Exit(result)
 }
 
 var activeToken = "active_token"

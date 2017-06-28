@@ -16,9 +16,9 @@ type AuthServer struct {
 	httpServer http.Server
 }
 
-func NewAuthServer() *AuthServer {
+func NewAuthServer(port int) *AuthServer {
 	return &AuthServer{
-		port: 8080,
+		port: port,
 	}
 }
 
@@ -32,7 +32,7 @@ func (server *AuthServer) Start() (*oauth_service.Credentials, error) {
 		httpServer := http.Server{Addr: fmt.Sprintf(":%v", server.port)}
 		err := httpServer.ListenAndServe()
 		if err == nil {
-			log.Printf("Failed to start up http server %s%n", err)
+			log.Fatalf("Failed to start up http server %s\n", err)
 		} else {
 			log.Printf("Server started on port %v\n", server.port)
 		}

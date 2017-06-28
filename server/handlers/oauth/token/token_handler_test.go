@@ -12,6 +12,8 @@ import (
 	"bytes"
 	"errors"
 	"github.com/danielsomerfield/authful/server/service/oauth"
+	"github.com/danielsomerfield/authful/server/handlers"
+	"os"
 )
 
 var validClientId = "valid-client-id"
@@ -68,9 +70,11 @@ func mockCurrentTimeFn() time.Time {
 	return mockNow
 }
 
-func init() {
-	http.HandleFunc("/token", NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
-	go http.ListenAndServe(":8080", nil)
+func TestMain(m *testing.M) {
+	testServer := handlers.RunTestServer("/token", NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
+	result := m.Run()
+	testServer.Shutdown()
+	os.Exit(result)
 }
 
 func TestTokenHandler_RejectsGetRequest(t *testing.T) {
