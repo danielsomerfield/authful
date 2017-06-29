@@ -34,12 +34,12 @@ func NewIntrospectionHandler(validation RequestValidationFn, getTokenMetaData Ge
 			return
 		} else {
 			tokenMetaData := getTokenMetaData(token)
-			if tokenMetaData != nil {
-				bytes, err := json.Marshal(IntrospectionResponse{
-					Active: true,
-				})
-				handlers.WriteOrError(w, bytes, err)
-			}
+
+			active := tokenMetaData != nil
+			bytes, err := json.Marshal(IntrospectionResponse{
+				Active: active,
+			})
+			handlers.WriteOrError(w, bytes, err)
 		}
 	}
 }

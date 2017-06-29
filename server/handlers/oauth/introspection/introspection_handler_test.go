@@ -29,9 +29,10 @@ func mockGetTokenMetaDataFn(token string) *oauth.TokenMetaData {
 }
 
 var activeToken = "active_token"
+var unknownToken = "unknownToken"
 var validBearerToken = "valid-bearer-token"
 
-func TestIntrospectionHandler_ApprovesValidToken(t *testing.T) {
+func TestIntrospectionHandler_ValidToken(t *testing.T) {
 	post, _ := http.NewRequest("POST", "http://localhost:8080/introspect",
 		strings.NewReader(fmt.Sprintf("token=%s", activeToken)))
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -66,7 +67,36 @@ func TestIntrospectionHandler_ApprovesValidToken(t *testing.T) {
 	}
 }
 
+func TestIntrospectionHandler_UnknownToken(t *testing.T) {
+	post, _ := http.NewRequest("POST", "http://localhost:8080/introspect",
+		strings.NewReader(fmt.Sprintf("token=%s", unknownToken)))
+	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	post.Header.Set("Authorization", "Bearer "+validBearerToken)
+	response := httptest.NewRecorder()
+	handler := http.HandlerFunc(NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn))
+	handler.ServeHTTP(response, post)
+
+	if response.Code != 200 {
+		t.Errorf("Unexpected 200 but got %d", response.Code)
+		return
+	}
+
+	responseJSON := map[string]interface{}{}
+
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Errorf("Unexpected error: %+v", err)
+		return
+	}
+
+	json.Unmarshal(responseBody, &responseJSON)
+
+	if responseJSON["active"] != false {
+		t.Errorf("Expected active to equal 'false' but it was %s", responseJSON["active"])
+	}
+}
 /*
+//TODO: test with expired token
 //TODO: test with invalid bearer:
 WWW-Authenticate: Bearer realm="example",
                        error="invalid_token",
