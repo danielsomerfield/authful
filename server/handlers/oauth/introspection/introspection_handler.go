@@ -6,6 +6,7 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"encoding/json"
+	"time"
 )
 
 type RequestValidationFn func(request http.Request) bool
@@ -35,13 +36,17 @@ func NewIntrospectionHandler(validation RequestValidationFn, getTokenMetaData Ge
 		} else {
 			tokenMetaData := getTokenMetaData(token)
 
-			active := tokenMetaData != nil
+			active := tokenMetaData != nil && isCurrent(*tokenMetaData)
 			bytes, err := json.Marshal(IntrospectionResponse{
 				Active: active,
 			})
 			handlers.WriteOrError(w, bytes, err)
 		}
 	}
+}
+
+func isCurrent(tokenMetaData oauth.TokenMetaData) bool {
+	return time.Now().Before(tokenMetaData.Expiration)
 }
 
 type IntrospectionResponse struct {
