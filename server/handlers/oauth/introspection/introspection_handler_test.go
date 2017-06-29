@@ -35,6 +35,7 @@ var activeToken = "active-token"
 var unknownToken = "unknown-token"
 var expiredToken = "expired-token"
 var validBearerToken = "valid-bearer-token"
+var invalidBearerToken = "invalid-bearer-token"
 
 func TestIntrospectionHandler_ValidToken(t *testing.T) {
 
@@ -78,8 +79,16 @@ func TestIntrospectionHandler_ExpiredToken(t *testing.T) {
 	}, t)
 }
 
+func TestIntrospectionHandler_InvalidBearer(t *testing.T) {
+	introspectWithToken(expiredToken, invalidBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+		if response.HttpStatus != 401 {
+			return fmt.Errorf("Expected 401, but got %d", response.HttpStatus)
+		}
+		return nil
+	}, t)
+}
+
 /*
-//TODO: test with invalid bearer:
 //TODO: check for WWW-Authenticate response on denials
 WWW-Authenticate: Bearer realm="example",
                        error="invalid_token",
