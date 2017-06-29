@@ -4,14 +4,10 @@ import (
 	"net/http"
 	"testing"
 	"fmt"
-	"strings"
-	"encoding/json"
-	"io/ioutil"
 	"reflect"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"time"
-	"net/http/httptest"
-	"bytes"
+	"github.com/danielsomerfield/authful/server/handlers"
 )
 
 func mockRequestValidation(request http.Request) bool {
@@ -40,49 +36,47 @@ var unknownToken = "unknown-token"
 var expiredToken = "expired-token"
 var validBearerToken = "valid-bearer-token"
 
-
 func TestIntrospectionHandler_ValidToken(t *testing.T) {
 
-	introspectWithToken(activeToken, validBearerToken).thenAssert(func(response *TokenResponse) error {
-		if response.httpStatus != 200 {
-			return fmt.Errorf("Expected 200, but got %d", response.httpStatus)
+	introspectWithToken(activeToken, validBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+		if response.HttpStatus != 200 {
+			return fmt.Errorf("Expected 200, but got %d", response.HttpStatus)
 		}
 		expected := map[string]interface{}{
 			"active": true,
 		}
 
-		if !reflect.DeepEqual(response.json, expected) {
+		if !reflect.DeepEqual(response.Json, expected) {
 			t.Errorf("Returned jwt didn't match. \nExpected: %+v. \nWas:      %+v\n", expected,
-				response.json)
+				response.Json)
 		}
 		return nil
 	}, t)
 }
 
 func TestIntrospectionHandler_UnknownToken(t *testing.T) {
-	introspectWithToken(unknownToken, validBearerToken).thenAssert(func(response *TokenResponse) error {
-		if response.httpStatus != 200 {
-			return fmt.Errorf("Expected 200, but got %d", response.httpStatus)
+	introspectWithToken(unknownToken, validBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+		if response.HttpStatus != 200 {
+			return fmt.Errorf("Expected 200, but got %d", response.HttpStatus)
 		}
-		if response.json["active"] != false {
-			return fmt.Errorf("Expected active to equal 'false' but it was %s", response.json["active"])
+		if response.Json["active"] != false {
+			return fmt.Errorf("Expected active to equal 'false' but it was %s", response.Json["active"])
 		}
 		return nil
 	}, t)
 }
 
 func TestIntrospectionHandler_ExpiredToken(t *testing.T) {
-	introspectWithToken(expiredToken, validBearerToken).thenAssert(func(response *TokenResponse) error {
-		if response.httpStatus != 200 {
-			return fmt.Errorf("Expected 200, but got %d", response.httpStatus)
+	introspectWithToken(expiredToken, validBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+		if response.HttpStatus != 200 {
+			return fmt.Errorf("Expected 200, but got %d", response.HttpStatus)
 		}
-		if response.json["active"] != false {
-			return fmt.Errorf("Expected active to equal 'false' but it was %s", response.json["active"])
+		if response.Json["active"] != false {
+			return fmt.Errorf("Expected active to equal 'false' but it was %s", response.Json["active"])
 		}
 		return nil
 	}, t)
 }
-
 
 /*
 //TODO: test with invalid bearer:
@@ -94,58 +88,14 @@ WWW-Authenticate: Bearer realm="example",
  */
 //TODO:	test with valid bearer inactive creds
 
-func introspectWithToken(tokenToValidate string, callingBearerToken string) * TokenResponse {
-
+func introspectWithToken(tokenToValidate string, callingBearerToken string) *handlers.EndpointResponse {
 	body := fmt.Sprintf("token=%s", tokenToValidate)
-	post, _ := http.NewRequest("POST", "http://localhost:8080/introspect",
-		strings.NewReader(body))
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	post.Header.Set("Authorization", "Bearer "+ callingBearerToken)
-
-
-	response := httptest.NewRecorder()
-	handler := http.HandlerFunc(NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn))
-	handler.ServeHTTP(response, post)
-
-	responseBody, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return &TokenResponse{
-			err: err,
-		}
+	headers := map[string]string {
+		"Authorization" : "Bearer "+callingBearerToken,
 	}
-
-	var jwt map[string]interface{}
-	decoder := json.NewDecoder(bytes.NewBuffer(responseBody))
-	decoder.UseNumber()
-	decoder.Decode(&jwt)
-	if err != nil {
-		return &TokenResponse{
-			err: err,
-		}
-	}
-	return &TokenResponse{
-		json:       jwt,
-		httpStatus: response.Code,
-		err:        nil,
-	}
-}
-
-type TokenResponse struct {
-	json       map[string]interface{}
-	httpStatus int
-	err        error
-}
-
-func (rs *TokenResponse) thenAssert(test func(response *TokenResponse) error, t *testing.T) error {
-	if rs.err != nil {
-		t.Errorf("Request failed: %+v", rs.err)
-		return rs.err
-	}
-
-	err := test(rs)
-	if err != nil {
-		t.Errorf("Assertion failed: %+v", err)
-		return rs.err
-	}
-	return nil
+	//post.Header.Set("Authorization", "Bearer "+callingBearerToken)
+	return handlers.DoEndpointRequestWithHeaders(
+		NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn),
+		"http://localhost:8080/token",
+		body, headers)
 }

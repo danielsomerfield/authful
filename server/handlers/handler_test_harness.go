@@ -17,10 +17,18 @@ type EndpointResponse struct {
 }
 
 func DoEndpointRequest(underTest http.HandlerFunc, endpoint string, body string) *EndpointResponse {
+	return DoEndpointRequestWithHeaders(underTest, endpoint, body, map[string]string{})
+}
+
+func DoEndpointRequestWithHeaders(underTest http.HandlerFunc, endpoint string, body string, headers map[string]string) *EndpointResponse {
 
 	post, _ := http.NewRequest("POST", endpoint,
 		strings.NewReader(body))
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	for name, value := range headers {
+		post.Header.Set(name, value)
+	}
 
 	response := httptest.NewRecorder()
 	handler := http.HandlerFunc(underTest)
