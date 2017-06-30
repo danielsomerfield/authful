@@ -95,14 +95,12 @@ WWW-Authenticate: Bearer realm="example",
                        error_description="The access token expired"
 
  */
-//TODO:	test with valid bearer inactive creds
 
 func introspectWithToken(tokenToValidate string, callingBearerToken string) *handlers.EndpointResponse {
 	body := fmt.Sprintf("token=%s", tokenToValidate)
 	headers := map[string]string {
 		"Authorization" : "Bearer "+callingBearerToken,
 	}
-	//post.Header.Set("Authorization", "Bearer "+callingBearerToken)
 	return handlers.DoEndpointRequestWithHeaders(
 		NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn),
 		"http://localhost:8080/token",

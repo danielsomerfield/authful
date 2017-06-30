@@ -9,6 +9,7 @@ import (
 	"github.com/danielsomerfield/authful/util"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/token"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/authorization"
+	"github.com/danielsomerfield/authful/server/handlers/oauth/introspection"
 )
 
 type AuthServer struct {
@@ -56,15 +57,12 @@ var tokenHandlerConfig = token.TokenHandlerConfig{
 	DefaultTokenExpiration: 3600,
 }
 
-type DefaultTokenStore struct {
-}
-
-func (tokenStore DefaultTokenStore) StoreToken(token string, tokenMetaData oauth_service.TokenMetaData) error {
-	return nil
-}
-
-var tokenStore = DefaultTokenStore{}
+//Injected Service Dependencies
+var tokenStore = oauth_service.NewInMemoryTokenStore()
 var clientStore = oauth_service.NewInMemoryClientStore()
+var requestValidationFn = func(request http.Request) bool {
+	return false
+}
 
 func currentTimeFn() time.Time {
 	return time.Now()
@@ -79,4 +77,5 @@ func init() {
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", authorization.AuthorizeHandler)
+	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(requestValidationFn, tokenStore.GetToken))
 }

@@ -10,9 +10,8 @@ import (
 )
 
 type RequestValidationFn func(request http.Request) bool
-type GetTokenMetaDataFn func(token string) *oauth.TokenMetaData
 
-func NewIntrospectionHandler(validation RequestValidationFn, getTokenMetaData GetTokenMetaDataFn) func(http.ResponseWriter, *http.Request) {
+func NewIntrospectionHandler(validation RequestValidationFn, getTokenMetaData oauth.GetTokenMetaDataFn) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, request *http.Request) {
 		//TODO support for client credentials
 

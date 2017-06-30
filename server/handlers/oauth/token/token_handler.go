@@ -19,13 +19,11 @@ type TokenHandlerConfig struct {
 	DefaultTokenExpiration int64
 }
 
-type StoreTokenFn func(token string, tokenMetaData oauth_service.TokenMetaData) error
-
 func NewTokenHandler(
 	config TokenHandlerConfig,
 	clientLookupFn oauth_service.ClientLookupFn,
 	tokenGenerator TokenGeneratorFn,
-	storeTokenFn StoreTokenFn,
+	storeTokenFn oauth_service.StoreTokenMetaDataFn,
 	currentTimeFn CurrentTimeFn) func(http.ResponseWriter, *http.Request) {
 
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -33,8 +31,13 @@ func NewTokenHandler(
 	}
 }
 
-func TokenHandler(w http.ResponseWriter, req *http.Request, config TokenHandlerConfig,
-	clientLookupFn oauth_service.ClientLookupFn, tokenGenerator TokenGeneratorFn, storeTokenFn StoreTokenFn, currentTimeFn CurrentTimeFn) {
+func TokenHandler(w http.ResponseWriter,
+	req *http.Request,
+	config TokenHandlerConfig,
+	clientLookupFn oauth_service.ClientLookupFn,
+	tokenGenerator TokenGeneratorFn,
+	storeTokenFn oauth_service.StoreTokenMetaDataFn,
+	currentTimeFn CurrentTimeFn) {
 
 	tokenRequest, err := oauth_wire.ParseTokenRequest(*req)
 	if err != nil {
