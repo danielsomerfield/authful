@@ -14,21 +14,21 @@ func mockRequestValidation(request http.Request) bool {
 	return request.Header.Get("Authorization") == "Bearer "+validBearerToken
 }
 
-func mockGetTokenMetaDataFn(token string) *oauth.TokenMetaData {
+func mockGetTokenMetaDataFn(token string) (*oauth.TokenMetaData, error) {
 	if token == activeToken {
 		return &oauth.TokenMetaData{
 			Token:      token,
 			Expiration: time.Now().AddDate(1, 0, 0),
 			ClientId:   "",
-		}
+		}, nil
 	} else if token == expiredToken {
 		return &oauth.TokenMetaData{
 			Token:      token,
 			Expiration: time.Now().AddDate(-1, 0, 0),
 			ClientId:   "",
-		}
+		}, nil
 	}
-	return nil
+	return nil, nil
 }
 
 var activeToken = "active-token"

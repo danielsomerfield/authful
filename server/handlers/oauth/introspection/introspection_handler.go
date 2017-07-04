@@ -33,7 +33,11 @@ func NewIntrospectionHandler(validation RequestValidationFn, getTokenMetaData oa
 			handlers.InvalidRequest("Missing field 'token'", w)
 			return
 		} else {
-			tokenMetaData := getTokenMetaData(token)
+			tokenMetaData, err := getTokenMetaData(token)
+			if err != nil {
+				handlers.InvalidRequest(err.Error(), w)
+				return
+			}
 
 			active := tokenMetaData != nil && isCurrent(*tokenMetaData)
 			bytes, err := json.Marshal(IntrospectionResponse{

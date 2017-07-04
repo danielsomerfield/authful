@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type GetTokenMetaDataFn func(token string) *TokenMetaData
+type GetTokenMetaDataFn func(token string) (*TokenMetaData, error)
 type StoreTokenMetaDataFn func(token string, tokenMetaData TokenMetaData) error
 
 type TokenMetaData struct {
@@ -23,10 +23,12 @@ func NewInMemoryTokenStore() inMemoryTokenStore {
 	}
 }
 
-func (*inMemoryTokenStore) StoreToken(token string, tokenMetaData TokenMetaData) error {
+func (store *inMemoryTokenStore) StoreToken(token string, tokenMetaData TokenMetaData) error {
+	store.tokenMetaData[token] = tokenMetaData
 	return nil
 }
 
-func (*inMemoryTokenStore) GetToken(token string) *TokenMetaData {
-	return nil
+func (store *inMemoryTokenStore) GetToken(token string) (*TokenMetaData, error) {
+	tokenMetaData := store.tokenMetaData[token]
+	return &tokenMetaData, nil
 }

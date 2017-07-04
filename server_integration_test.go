@@ -16,6 +16,7 @@ import (
 	"github.com/danielsomerfield/authful/server"
 	"os"
 	"log"
+	"regexp"
 )
 
 var creds *oauth_service.Credentials = nil
@@ -68,14 +69,20 @@ func requestAdminToken(credentials oauth_service.Credentials) (*oauth_wire.Token
 	}
 }
 
-//TODO: disabled until fixing the issue with storing the default admin client creds
 func TestClientCredentialsEnd2End(t *testing.T) {
 	go func() {
 		//TODO register this protected resource provider as a client so it can hit the token introspection endpoint
 		httpServer := http.Server{Addr: ":8181"}
 		http.HandleFunc("/test", func(w http.ResponseWriter, request *http.Request) {
-			body, err := ioutil.ReadAll(request.Body)
-			fmt.Printf("/test: body = %+v err = %+v headers = ", body, err, request.Header)
+			//body, err := ioutil.ReadAll(request.Body)
+			//fmt.Printf("/test: body = %+v err = %+v headers = %+v\n", body, err, request.Header)
+			bearerHeader := request.Header.Get("Authorization")
+			bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
+			if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
+				log.Printf("Bad token: size = %d value = %s\n", len(bearerTokenArray) - 1, bearerTokenArray[0])
+				http.Error(w, "Unauthorized", 401)
+			}
+
 		})
 		httpServer.ListenAndServe()
 
@@ -93,16 +100,46 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %+v", err)
 		return
+	} else if resp.StatusCode != 200 {
+		t.Errorf("Expected 200 but was %d\n", resp.StatusCode)
+		return
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Errorf("Unexpected error %+v", err)
 		return
 	}
-	//TODO: hit the token introspection endpoint with the token and make sure it succeeds
-	//TODO: hit the token introspection endpoint with a bad token and make sure it fails
-	fmt.Printf("Body: %s", string(body))
+
+	//TODO: hit the service endpoint with a bad token and make sure it fails
+
+}
+
+func validateToken(token string) bool {
+	post, _ := http.NewRequest("POST", "http://localhost:8081/introspect",
+		strings.NewReader(fmt.Sprintf("token=%s", token)))
+	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	response, err := http.DefaultClient.Do(post)
+
+	if err != nil {
+		log.Printf("Failed to execute introspection request: %+v\n", err)
+		return false
+	} else if response.StatusCode != 200 {
+		log.Printf("Request to introspection endpoint failed with status code %d\n", response.StatusCode)
+		return false
+	} else {
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("Failed to read http body: %+v\n", err)
+			return false
+		}
+		responseJSON := map[string]interface{}{}
+		err = json.Unmarshal(body, &responseJSON)
+		validated := responseJSON["active"]
+		log.Printf("Validated: %b", validated)
+		return validated == true
+	}
 }
 
 func TestErrorResponse(t *testing.T) {

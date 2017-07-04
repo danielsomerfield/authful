@@ -61,7 +61,7 @@ var tokenHandlerConfig = token.TokenHandlerConfig{
 var tokenStore = oauth_service.NewInMemoryTokenStore()
 var clientStore = oauth_service.NewInMemoryClientStore()
 var requestValidationFn = func(request http.Request) bool {
-	return false
+	return true
 }
 
 func currentTimeFn() time.Time {
