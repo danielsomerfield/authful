@@ -7,7 +7,7 @@ import (
 )
 
 type ClientCredentials struct {
-	ClientId string
+	ClientId     string
 	ClientSecret string
 }
 
@@ -37,4 +37,3 @@ func ParseClientCredentialsBasicHeader(httpRequest http.Request) (*ClientCredent
 	}
 	return nil, nil
 }
-

@@ -13,7 +13,7 @@ type Client interface {
 }
 
 func (c Credentials) String() string {
-	creds := fmt.Sprintf("{%s}:{%s}", url.QueryEscape(c.ClientId), url.QueryEscape(c.ClientSecret))
+	creds := fmt.Sprintf("%s:%s", url.QueryEscape(c.ClientId), url.QueryEscape(c.ClientSecret))
 	return base64.StdEncoding.EncodeToString([]byte(creds))
 }
 

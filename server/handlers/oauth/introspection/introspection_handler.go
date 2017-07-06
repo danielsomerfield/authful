@@ -7,21 +7,26 @@ import (
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"encoding/json"
 	"time"
+	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 )
 
-type AccessControlFunction func(request http.Request) bool
-
-func NewIntrospectionHandler(validation AccessControlFunction, getTokenMetaData oauth.GetTokenMetaDataFn) func(http.ResponseWriter, *http.Request) {
+func NewIntrospectionHandler(accessControlFn accesscontrol.ClientAccessControlFn, getTokenMetaData oauth.GetTokenMetaDataFn) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, request *http.Request) {
 		//TODO support for client credentials
 
-		if !validation(*request) {
+		allowed, err  := accessControlFn(*request)
+		if !allowed {
 			handlers.JsonError("invalid_token", "Failed to authenticate.", "",
 				http.StatusUnauthorized, w)
 			return
 		}
 
-		err := request.ParseForm()
+		if err != nil {
+			handlers.InvalidRequest(err.Error(), w)
+			return
+		}
+
+		err = request.ParseForm()
 		if err != nil {
 			handlers.InvalidRequest(err.Error(), w)
 			return

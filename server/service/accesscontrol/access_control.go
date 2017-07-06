@@ -3,24 +3,26 @@ package accesscontrol
 import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/service/oauth"
+	"github.com/danielsomerfield/authful/server/wire/authentication"
 )
 
-type ClientAccessControlFn func(request http.Request) bool
+type ClientAccessControlFn func(request http.Request) (bool, error)
 
 func NewClientAccessControlFn(clientLookup oauth.ClientLookupFn) ClientAccessControlFn {
-	return func(request http.Request) bool {
+	return func(request http.Request) (bool, error) {
 		//TODO: This will need to support two auth methods: client credentials and token
 		//TODO: Implement client credentials first (token can come later)
 		//Get the credentials from the request
-		authorizationHeader := request.Header.Get("Authorization")
-		if authorizationHeader == "" {
-			return false
-		} else {
-			//Look up the client
 
-			//client := clientLookup()
-			//Make sure the client has the introspect_token or administrate scope
+		credentials, err := authentication.ParseClientCredentialsBasicHeader(request)
+		if credentials != nil {
+			client, err := clientLookup(credentials.ClientId)
+			if client != nil {
+				return client.CheckSecret(credentials.ClientSecret), err
+			}
 		}
-		return true //TODO: NYI
+
+		return false, err //TODO: NYI
 	}
 }
+

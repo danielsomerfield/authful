@@ -10,8 +10,8 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers"
 )
 
-func mockRequestValidation(request http.Request) bool {
-	return request.Header.Get("Authorization") == "Bearer "+validBearerToken
+func mockRequestValidation(request http.Request) (bool, error) {
+	return request.Header.Get("Authorization") == "Bearer "+validBearerToken, nil
 }
 
 func mockGetTokenMetaDataFn(token string) (*oauth.TokenMetaData, error) {
@@ -98,8 +98,8 @@ WWW-Authenticate: Bearer realm="example",
 
 func introspectWithToken(tokenToValidate string, callingBearerToken string) *handlers.EndpointResponse {
 	body := fmt.Sprintf("token=%s", tokenToValidate)
-	headers := map[string]string {
-		"Authorization" : "Bearer "+callingBearerToken,
+	headers := map[string]string{
+		"Authorization": "Bearer " + callingBearerToken,
 	}
 	return handlers.DoEndpointRequestWithHeaders(
 		NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn),
