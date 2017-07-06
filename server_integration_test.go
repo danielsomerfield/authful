@@ -71,7 +71,6 @@ func requestAdminToken(credentials oauth_service.Credentials) (*oauth_wire.Token
 
 func TestClientCredentialsEnd2End(t *testing.T) {
 	go func() {
-		//TODO register this protected resource provider as a client so it can hit the token introspection endpoint
 		httpServer := http.Server{Addr: ":8181"}
 		http.HandleFunc("/test", func(w http.ResponseWriter, request *http.Request) {
 			//body, err := ioutil.ReadAll(request.Body)
@@ -79,7 +78,7 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 			bearerHeader := request.Header.Get("Authorization")
 			bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
 			if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
-				log.Printf("Bad token: size = %d value = %s\n", len(bearerTokenArray) - 1, bearerTokenArray[0])
+				log.Printf("Bad token: size = %d value = %s\n", len(bearerTokenArray)-1, bearerTokenArray[0])
 				http.Error(w, "Unauthorized", 401)
 			}
 
@@ -119,6 +118,7 @@ func validateToken(token string) bool {
 	post, _ := http.NewRequest("POST", "http://localhost:8081/introspect",
 		strings.NewReader(fmt.Sprintf("token=%s", token)))
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	post.Header.Set("Authorization", "Basic "+creds.String())
 
 	response, err := http.DefaultClient.Do(post)
 
@@ -242,7 +242,7 @@ func WaitForServer(server *server.AuthServer) error {
 }
 
 func RunServer() (*server.AuthServer, *oauth_service.Credentials, error) {
-	authServer := server.NewAuthServer(8081 )
+	authServer := server.NewAuthServer(8081)
 
 	var credentials *oauth_service.Credentials
 	credentials, err := authServer.Start()

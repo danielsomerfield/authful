@@ -60,8 +60,13 @@ var tokenHandlerConfig = token.TokenHandlerConfig{
 //Injected Service Dependencies
 var tokenStore = oauth_service.NewInMemoryTokenStore()
 var clientStore = oauth_service.NewInMemoryClientStore()
-var requestValidationFn = func(request http.Request) bool {
-	return true
+var clientAccessControlFn = func(request http.Request) bool {
+	//TODO: This will need to support two auth methods: client credentials and token
+	//TODO: Implement client credentials first (token can come later)
+	//Get the credentials from the request
+	//Look up the client
+	//Make sure the client has the introspect_token or administrate scope
+	return true //TODO: NYI
 }
 
 func currentTimeFn() time.Time {
@@ -77,5 +82,5 @@ func init() {
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", authorization.AuthorizeHandler)
-	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(requestValidationFn, tokenStore.GetToken))
+	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(clientAccessControlFn, tokenStore.GetToken))
 }

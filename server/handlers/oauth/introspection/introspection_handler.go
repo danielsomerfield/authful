@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-type RequestValidationFn func(request http.Request) bool
+type AccessControlFunction func(request http.Request) bool
 
-func NewIntrospectionHandler(validation RequestValidationFn, getTokenMetaData oauth.GetTokenMetaDataFn) func(http.ResponseWriter, *http.Request) {
+func NewIntrospectionHandler(validation AccessControlFunction, getTokenMetaData oauth.GetTokenMetaDataFn) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, request *http.Request) {
 		//TODO support for client credentials
 

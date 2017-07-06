@@ -2,11 +2,10 @@ package oauth
 
 import (
 	"net/http"
-	"encoding/base64"
-	"regexp"
 	"errors"
 	"log"
 	"github.com/danielsomerfield/authful/server/wire"
+	"github.com/danielsomerfield/authful/server/wire/authentication"
 )
 
 var GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials"
@@ -41,28 +40,16 @@ func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
 		return nil, err
 	}
 
-	authHeader := httpRequest.Header.Get("Authorization")
-	if authHeader != "" {
+	clientCredentials, err := authentication.ParseClientCredentialsBasicHeader(httpRequest)
+	if clientCredentials != nil {
 		if tokenRequest.ClientId != "" {
 			log.Print("Invalid client: credentials in both header and body.")
 			return nil, ERR_INVALID_CLIENT
+		} else {
+			tokenRequest.ClientId = clientCredentials.ClientId
+			tokenRequest.ClientSecret = clientCredentials.ClientSecret
 		}
-		encodedToken := regexp.MustCompile("Basic ([a-zA-Z0-9]*)").FindStringSubmatch(string(authHeader))
-		if len(encodedToken) > 1 {
-			bearerBytes, err := base64.RawStdEncoding.DecodeString(encodedToken[1])
-			if err != nil {
-				return nil, err
-			}
-			bearerTokenString := string(bearerBytes)
-			creds := regexp.MustCompile("(.*):(.*)").FindStringSubmatch(bearerTokenString)
-			if len(creds) > 1 {
-				tokenRequest.ClientId = creds[1]
-				if len(creds) > 2 {
-					tokenRequest.ClientSecret = creds[2]
-				}
-			}
-		}
-
 	}
-	return &tokenRequest, nil
+
+	return &tokenRequest, err
 }
