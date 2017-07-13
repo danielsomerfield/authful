@@ -78,7 +78,7 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 			bearerHeader := request.Header.Get("Authorization")
 			bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
 			if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
-				log.Printf("Bad token: size = %d value = %s\n", len(bearerTokenArray)-1, bearerTokenArray[0])
+				log.Printf("Bad token: size = %d value = %+v\n", len(bearerTokenArray)-1, bearerTokenArray)
 				http.Error(w, "Unauthorized", 401)
 			}
 
@@ -110,8 +110,27 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 		return
 	}
 
-	//TODO: hit the service endpoint with a bad token and make sure it fails
+	//No token
+	resp, err = http.Get("http://localhost:8181/test")
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	} else if resp.StatusCode != 401 {
+		t.Errorf("Expected 401 but was %d\n", resp.StatusCode)
+		return
+	}
 
+	//Invalid token
+	invalidRequest, _ := http.NewRequest("GET", "http://localhost:8181/test", nil)
+	invalidRequest.Header.Set("Authorization", "Bearer 12345")
+	resp, err = http.DefaultClient.Do(invalidRequest)
+	if err != nil {
+		t.Errorf("Unexpected error %+v", err)
+		return
+	} else if resp.StatusCode != 401 {
+		t.Errorf("Expected 401 but was %d\n", resp.StatusCode)
+		return
+	}
 }
 
 func validateToken(token string) bool {
