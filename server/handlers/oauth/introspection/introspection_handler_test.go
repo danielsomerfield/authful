@@ -102,7 +102,5 @@ func introspectWithToken(tokenToValidate string, callingBearerToken string) *han
 		"Authorization": "Bearer " + callingBearerToken,
 	}
 	return handlers.DoEndpointRequestWithHeaders(
-		NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn),
-		"http://localhost:8080/token",
-		body, headers)
+		NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn), body, headers)
 }

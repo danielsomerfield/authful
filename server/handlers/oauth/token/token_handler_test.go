@@ -68,7 +68,7 @@ func mockCurrentTimeFn() time.Time {
 }
 
 func TestTokenHandler_RejectsGetRequest(t *testing.T) {
-	request, _ := http.NewRequest("GET", "http://localhost:8080/token", nil)
+	request, _ := http.NewRequest("GET", "", nil)
 	response := httptest.NewRecorder()
 	handler := http.HandlerFunc(NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn))
 	handler.ServeHTTP(response, request)
@@ -84,9 +84,7 @@ func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, c
 		body = body + "&scope=" + scope
 	}
 	return handlers.DoEndpointRequest(
-		NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn),
-		"http://localhost:8080/token",
-		body)
+		NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn), body)
 }
 
 func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSecret string) *handlers.EndpointResponse {
