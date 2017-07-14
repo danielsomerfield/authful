@@ -15,6 +15,10 @@ func Unauthorized(errorDescription string, w http.ResponseWriter) {
 	JsonError("invalid_client", errorDescription, "", http.StatusUnauthorized, w)
 }
 
+func InternalServerError(errorDescription string, w http.ResponseWriter) {
+	JsonError("server_error", errorDescription, "", http.StatusInternalServerError, w)
+}
+
 func JsonError(errorType string, errorDescription string, errorURI string, httpStatus int, w http.ResponseWriter) {
 	w.WriteHeader(httpStatus)
 	errorMessageJSON, err := json.Marshal(wire.ErrorResponse{

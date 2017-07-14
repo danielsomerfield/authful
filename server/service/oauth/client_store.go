@@ -23,6 +23,7 @@ type Credentials struct {
 }
 
 type ClientLookupFn func(clientId string) (Client, error)
+type RegisterClientFn func(name string, scopes []string) (*Credentials, error)
 
 type inMemoryClientStore struct {
 	clients map[string]DefaultClient
