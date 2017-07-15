@@ -90,7 +90,16 @@ func InternalServerError(errorDescription string, w http.ResponseWriter) {
 
 func JsonError(errorType string, errorDescription string, errorURI string, httpStatus int, w http.ResponseWriter) {
 	w.WriteHeader(httpStatus)
-	errorMessageJSON, err := json.Marshal(wire.ErrorsResponse{})
+	errorMessageJSON, err := json.Marshal(wire.ErrorsResponse{
+		Errors : []wire.Error{
+			{
+				Status:    httpStatus,
+				ErrorType: errorType,
+				Detail:    errorDescription,
+				ErrorURI:  errorURI,
+			},
+		},
+	})
 	if err == nil {
 		w.Write(errorMessageJSON)
 	} else {

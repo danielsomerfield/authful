@@ -6,8 +6,8 @@ import (
 	"testing"
 	"net/http"
 	"github.com/danielsomerfield/authful/server/service/oauth"
-	"os"
 	"reflect"
+	"fmt"
 )
 
 var mockSucceedingClientAccessControlFn = func(request http.Request) (bool, error) {
@@ -42,13 +42,13 @@ var mockRegisterClientFn = func(name string, scopes []string) (*oauth.Credential
 	}, nil
 }
 
-func TestMain(m *testing.M) {
+func setup() {
 	registeredClients = map[string]registeredClient{}
-	os.Exit(m.Run())
 }
 
 func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T) {
 
+	setup()
 	registerClientRequest := map[string]interface{}{
 		"command": map[string]interface{}{
 			"name":   "test-client",
@@ -88,37 +88,38 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 	}
 }
 
-//Test that registration fails without succeeding auth function
-//func TestRegisterClientHandler_registersFailingAuthorization(t *testing.T) {
-//
-//	registerClientRequest := map[string]interface{}{
-//		"command": map[string]interface{}{
-//			"name":   "test-client",
-//			"scopes": []string{"scope-1", "scope-2"},
-//		},
-//	}
-//
-//	body, _ := json.Marshal(registerClientRequest)
-//	response := handlers.DoEndpointRequest(
-//		NewRegisterClientHandler(mockFailingClientAccessControlFn, mockRegisterClientFn), string(body))
-//
-//	if response.HttpStatus != 401 {
-//		t.Fatalf("Expected 401 but got %d\n", response.HttpStatus)
-//	}
-//
-//	errors, converted := response.Json["errors"].([]map[string]interface{})
-//
-//	if !converted {
-//		t.Fatalf("Failed to convert to expected type.")
-//	}
-//
-//	if len(errors) != 1 {
-//		t.Fatalf("Received unexpected error payload %+v\n", response.Json)
-//	}
-//
-//	if len(registeredClients) != 0 {
-//		t.Fatal("Expected no clients to be registered.")
-//	}
-//}
+func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *testing.T) {
+
+	setup()
+	registerClientRequest := map[string]interface{}{
+		"command": map[string]interface{}{
+			"name":   "test-client",
+			"scopes": []string{"scope-1", "scope-2"},
+		},
+	}
+
+	body, _ := json.Marshal(registerClientRequest)
+	response := handlers.DoEndpointRequest(
+		NewRegisterClientHandler(mockFailingClientAccessControlFn, mockRegisterClientFn), string(body))
+
+	if response.HttpStatus != 401 {
+		t.Fatalf("Expected 401 but got %d\n", response.HttpStatus)
+	}
+
+	fmt.Printf("response.Json[\"errors\"]: %+v - %s\n", response.Json["errors"], reflect.TypeOf(response.Json["errors"]))
+	errors, converted := response.Json["errors"].([]interface{})
+
+	if !converted {
+		t.Fatalf("Failed to convert to expected type.")
+	}
+
+	if len(errors) != 1 {
+		t.Fatalf("Received unexpected error payload %+v\n", response.Json)
+	}
+
+	if len(registeredClients) != 0 {
+		t.Fatalf("Expected no clients to be registered: %+v\n", registeredClients)
+	}
+}
 
 //Test that registering the same client twice fails
