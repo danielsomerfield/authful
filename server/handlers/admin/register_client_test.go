@@ -10,7 +10,11 @@ import (
 	"reflect"
 )
 
-var mockClientAccessControlFn = func(request http.Request) (bool, error) {
+var mockSucceedingClientAccessControlFn = func(request http.Request) (bool, error) {
+	return true, nil
+}
+
+var mockFailingClientAccessControlFn = func(request http.Request) (bool, error) {
 	return false, nil
 }
 
@@ -27,13 +31,13 @@ var mockRegisterClientFn = func(name string, scopes []string) (*oauth.Credential
 	clientId := name + "-id"
 	clientSecret := name + "-secret"
 	registeredClients[clientId] = registeredClient{
-		clientId: clientId,
+		clientId:     clientId,
 		clientSecret: clientSecret,
-		name : name,
-		scopes: scopes,
+		name:         name,
+		scopes:       scopes,
 	}
 	return &oauth.Credentials{
-		ClientId: clientId,
+		ClientId:     clientId,
 		ClientSecret: clientSecret,
 	}, nil
 }
@@ -45,8 +49,7 @@ func TestMain(m *testing.M) {
 
 func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T) {
 
-
-	registerClientRequest := map[string]interface{} {
+	registerClientRequest := map[string]interface{}{
 		"command": map[string]interface{}{
 			"name":   "test-client",
 			"scopes": []string{"scope-1", "scope-2"},
@@ -55,7 +58,7 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 
 	body, _ := json.Marshal(registerClientRequest)
 	response := handlers.DoEndpointRequest(
-		NewRegisterClientHandler(mockClientAccessControlFn, mockRegisterClientFn), string(body))
+		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body))
 
 	if response.HttpStatus != 200 {
 		t.Fatalf("Expected 200 but got %d\n", response.HttpStatus)
@@ -74,10 +77,10 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 	}
 
 	expectedClient := registeredClient{
-		clientId: createdClientId,
+		clientId:     createdClientId,
 		clientSecret: createdClientSecret,
-		name: "test-client",
-		scopes: []string{"scope-1", "scope-2"},
+		name:         "test-client",
+		scopes:       []string{"scope-1", "scope-2"},
 	}
 
 	if len(registeredClients) != 1 || reflect.DeepEqual(registeredClients["test-client"], expectedClient) {
@@ -85,6 +88,37 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 	}
 }
 
-//Test that without correct scope, request fails
-//Test that without credentials, request fails
+//Test that registration fails without succeeding auth function
+//func TestRegisterClientHandler_registersFailingAuthorization(t *testing.T) {
+//
+//	registerClientRequest := map[string]interface{}{
+//		"command": map[string]interface{}{
+//			"name":   "test-client",
+//			"scopes": []string{"scope-1", "scope-2"},
+//		},
+//	}
+//
+//	body, _ := json.Marshal(registerClientRequest)
+//	response := handlers.DoEndpointRequest(
+//		NewRegisterClientHandler(mockFailingClientAccessControlFn, mockRegisterClientFn), string(body))
+//
+//	if response.HttpStatus != 401 {
+//		t.Fatalf("Expected 401 but got %d\n", response.HttpStatus)
+//	}
+//
+//	errors, converted := response.Json["errors"].([]map[string]interface{})
+//
+//	if !converted {
+//		t.Fatalf("Failed to convert to expected type.")
+//	}
+//
+//	if len(errors) != 1 {
+//		t.Fatalf("Received unexpected error payload %+v\n", response.Json)
+//	}
+//
+//	if len(registeredClients) != 0 {
+//		t.Fatal("Expected no clients to be registered.")
+//	}
+//}
+
 //Test that registering the same client twice fails

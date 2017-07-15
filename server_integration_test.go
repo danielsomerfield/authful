@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"encoding/json"
-	"github.com/danielsomerfield/authful/server/wire"
 	"fmt"
 	"golang.org/x/oauth2/clientcredentials"
 	"context"
@@ -180,14 +179,14 @@ func TestErrorResponse(t *testing.T) {
 		return
 	}
 
-	errorResponse := wire.ErrorResponse{}
+	errorResponse := oauth_wire.ErrorResponse{} //TODO: remove dependency on "production" type
 
 	if err := json.Unmarshal(body, &errorResponse); err != nil {
 		t.Errorf("Unexpected error %+v", err)
 		return
 	}
 
-	expected := wire.ErrorResponse{
+	expected := oauth_wire.ErrorResponse{
 		Error:            "invalid_request",
 		ErrorDescription: "The following fields are required: [grant_type]",
 		ErrorURI:         "",

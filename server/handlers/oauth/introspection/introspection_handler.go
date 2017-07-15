@@ -3,44 +3,44 @@ package introspection
 import (
 	"net/http"
 
-	"github.com/danielsomerfield/authful/server/handlers"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"encoding/json"
 	"time"
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
+	oauth_handlers "github.com/danielsomerfield/authful/server/handlers/oauth"
 )
 
 func NewIntrospectionHandler(accessControlFn accesscontrol.ClientAccessControlFn, getTokenMetaData oauth.GetTokenMetaDataFn) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, request *http.Request) {
 		//TODO support for client credentials
 
-		allowed, err  := accessControlFn(*request)
+		allowed, err := accessControlFn(*request)
 		if !allowed {
-			handlers.JsonError("invalid_token", "Failed to authenticate.", "",
+			oauth_handlers.JsonOAuthError("invalid_token", "Failed to authenticate.", "",
 				http.StatusUnauthorized, w)
 			return
 		}
 
 		if err != nil {
-			handlers.InvalidRequest(err.Error(), w)
+			oauth_handlers.InvalidRequest(err.Error(), w)
 			return
 		}
 
 		err = request.ParseForm()
 		if err != nil {
-			handlers.InvalidRequest(err.Error(), w)
+			oauth_handlers.InvalidRequest(err.Error(), w)
 			return
 		}
 
 		token := request.Form.Get("token")
 
 		if token == "" {
-			handlers.InvalidRequest("Missing field 'token'", w)
+			oauth_handlers.InvalidRequest("Missing field 'token'", w)
 			return
 		} else {
 			tokenMetaData, err := getTokenMetaData(token)
 			if err != nil {
-				handlers.InvalidRequest(err.Error(), w)
+				oauth_handlers.InvalidRequest(err.Error(), w)
 				return
 			}
 
@@ -48,7 +48,7 @@ func NewIntrospectionHandler(accessControlFn accesscontrol.ClientAccessControlFn
 			bytes, err := json.Marshal(IntrospectionResponse{
 				Active: active,
 			})
-			handlers.WriteOrError(w, bytes, err)
+			oauth_handlers.WriteOrJsonOAuthError(w, bytes, err)
 		}
 	}
 }

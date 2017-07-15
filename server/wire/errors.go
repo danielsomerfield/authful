@@ -1,7 +1,10 @@
 package wire
 
-type ErrorResponse struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-	ErrorURI         string `json:"error_uri"`
+type ErrorsResponse struct {
+	Error            []Error `json:"error"`
+}
+
+type Error struct {
+	Status	string `json:"status"`
+	Detail	string `json:"detail"`
 }
