@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"reflect"
-	"fmt"
 )
 
 var mockSucceedingClientAccessControlFn = func(request http.Request) (bool, error) {
@@ -106,7 +105,6 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 		t.Fatalf("Expected 401 but got %d\n", response.HttpStatus)
 	}
 
-	fmt.Printf("response.Json[\"errors\"]: %+v - %s\n", response.Json["errors"], reflect.TypeOf(response.Json["errors"]))
 	errors, converted := response.Json["errors"].([]interface{})
 
 	if !converted {
@@ -115,6 +113,16 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 
 	if len(errors) != 1 {
 		t.Fatalf("Received unexpected error payload %+v\n", response.Json)
+	}
+
+	theError, converted := errors[0].(map[string]interface{})
+
+	if !converted {
+		t.Fatalf("Failed to convert to expected type.")
+	}
+
+	if theError["status"] != 401 && theError["errorType"] != "invalid_client" {
+		t.Fatalf("Unexpected error: %+v\n", errors[0])
 	}
 
 	if len(registeredClients) != 0 {

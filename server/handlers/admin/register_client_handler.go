@@ -21,7 +21,7 @@ func NewRegisterClientHandler(
 			if err != nil {
 				InternalServerError("An unexpected error occurred", w)
 			} else {
-				Unauthorized("The requested operation was defined.", w)
+				Unauthorized("The requested operation was denied.", w)
 			}
 			return
 		}
