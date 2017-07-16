@@ -51,7 +51,9 @@ func NewRegisterClientHandler(
 	}
 }
 
+//TODO: refactor this bit to the wire package
 func ParseRegisterClientRequest(request *http.Request) (*RegisterClientCommand, error) {
+	//TODO: check that all required fields are accounted for
 	body, err := ioutil.ReadAll(request.Body)
 	var registerClientRequest *RegisterClientRequest = nil
 	if err == nil {

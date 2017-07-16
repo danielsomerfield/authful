@@ -17,6 +17,7 @@ import (
 	"log"
 	"regexp"
 	"github.com/danielsomerfield/authful/util"
+	"bytes"
 )
 
 var creds *oauth_service.Credentials = nil
@@ -116,36 +117,44 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 	util.AssertStatusCode(resp, 401, t)
 }
 
+func TestScopeRequirements(t *testing.T) {
+	//Register a client with no scopes using admin credentials
+	createClientRequest := map[string]interface{}{}
+	messageBytes, _ := json.Marshal(createClientRequest)
 
+	post, _ := http.NewRequest("POST", "http://localhost:8081/admin/clients",
+		bytes.NewReader(messageBytes))
+	post.Header.Set("Content-Type", "application/json")
+	post.Header.Set("Authorization", "Basic "+creds.String())
 
-//func TestScopeRequirements(t *testing.T) {
-//	//Register a client with no scopes using admin credentials
-//	createClientRequest := map[string]interface{}{}
-//	messageBytes, _ := json.Marshal(createClientRequest)
-//
-//	post, _ := http.NewRequest("POST", "http://localhost:8081/admin/clients",
-//		bytes.NewReader(messageBytes))
-//	post.Header.Set("Content-Type", "application/json")
-//	post.Header.Set("Authorization", "Basic "+creds.String())
-//
-//	response, err := http.DefaultClient.Do(post)
-//
-//	util.AssertNoError(err, t)
-//
-//	if response.StatusCode != 200 {
-//		t.Errorf("Expected 200 but was %d\n", response.StatusCode)
-//		return
-//	}
-//
-//	body, err := ioutil.ReadAll(response.Body)
-//	responseMessage := map[string]interface{}{}
-//	err = json.Unmarshal(body, responseMessage)
-//
-//	//Request a token with new client
-//
-//	//Register another client... it should fail
-//
-//}
+	response, err := http.DefaultClient.Do(post)
+
+	util.AssertNoError(err, t)
+	util.AssertStatusCode(response, 200, t)
+
+	body, err := ioutil.ReadAll(response.Body)
+	responseMessage := map[string]interface{}{}
+	err = json.Unmarshal(body, &responseMessage)
+	util.AssertNoError(err, t)
+
+	data, converted := responseMessage["data"].(map[string]interface{})
+	util.AssertTrue(converted, "Data was converted", t)
+
+	//Register another client with the new client. it should fail
+	post, _ = http.NewRequest("POST", "http://localhost:8081/admin/clients",
+		bytes.NewReader(messageBytes))
+
+	insufficientCredentials := oauth_service.Credentials{
+		ClientId:     data["clientId"].(string),
+		ClientSecret: data["clientSecret"].(string),
+	}
+
+	post.Header.Set("Content-Type", "application/json")
+	post.Header.Set("Authorization", "Basic "+insufficientCredentials.String())
+	response, err = http.DefaultClient.Do(post)
+	util.AssertNoError(err, t)
+	util.AssertStatusCode(response, 401, t)
+}
 
 func validateToken(token string) bool {
 	post, _ := http.NewRequest("POST", "http://localhost:8081/introspect",

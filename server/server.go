@@ -11,6 +11,7 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers/oauth/authorization"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/introspection"
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
+	"github.com/danielsomerfield/authful/server/handlers/admin"
 )
 
 type AuthServer struct {
@@ -61,7 +62,6 @@ var tokenHandlerConfig = token.TokenHandlerConfig{
 //Injected Service Dependencies
 var tokenStore = oauth_service.NewInMemoryTokenStore()
 var clientStore = oauth_service.NewInMemoryClientStore()
-var clientAccessControlFn = accesscontrol.NewClientAccessControlFn(clientStore.LookupClient)
 
 func currentTimeFn() time.Time {
 	return time.Now()
@@ -76,5 +76,8 @@ func init() {
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", authorization.AuthorizeHandler)
-	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(clientAccessControlFn, tokenStore.GetToken))
+	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
+		accesscontrol.NewClientAccessControlFn(clientStore.LookupClient), tokenStore.GetToken))
+	http.HandleFunc("/admin/clients", admin.NewRegisterClientHandler(
+		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
 }

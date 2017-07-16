@@ -9,6 +9,10 @@ import (
 type ClientAccessControlFn func(request http.Request) (bool, error)
 
 func NewClientAccessControlFn(clientLookup oauth.ClientLookupFn) ClientAccessControlFn {
+	return NewClientAccessControlFnWithScopes(clientLookup, "")
+}
+
+func NewClientAccessControlFnWithScopes(clientLookup oauth.ClientLookupFn, requiredScope string) ClientAccessControlFn {
 	return func(request http.Request) (bool, error) {
 		//TODO: This will need to support two auth methods: client credentials and token
 		//TODO: Implement client credentials first (token can come later)
@@ -18,7 +22,8 @@ func NewClientAccessControlFn(clientLookup oauth.ClientLookupFn) ClientAccessCon
 		if credentials != nil {
 			client, err := clientLookup(credentials.ClientId)
 			if client != nil {
-				return client.CheckSecret(credentials.ClientSecret), err
+				return client.CheckSecret(credentials.ClientSecret) &&
+					(requiredScope == "" || HasScope(client, requiredScope)), err
 			}
 		}
 
@@ -26,3 +31,15 @@ func NewClientAccessControlFn(clientLookup oauth.ClientLookupFn) ClientAccessCon
 	}
 }
 
+func HasScope(client oauth.Client, scope string) bool {
+	if scope == "" {
+		return true
+	}
+	scopes := client.GetScopes()
+	for i := range scopes {
+		if scopes[i] == scope {
+			return true
+		}
+	}
+	return false
+}
