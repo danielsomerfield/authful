@@ -16,6 +16,7 @@ import (
 	"os"
 	"log"
 	"regexp"
+	"github.com/danielsomerfield/authful/util"
 )
 
 var creds *oauth_service.Credentials = nil
@@ -95,42 +96,56 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 	}
 
 	resp, err := config.Client(ctx).Get("http://localhost:8181/test")
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	} else if resp.StatusCode != 200 {
-		t.Errorf("Expected 200 but was %d\n", resp.StatusCode)
-		return
-	}
+	util.AssertNoError(err, t)
+	util.AssertStatusCode(resp, 200, t)
 
 	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
+	util.AssertNoError(err, t)
 
 	//No token
 	resp, err = http.Get("http://localhost:8181/test")
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	} else if resp.StatusCode != 401 {
-		t.Errorf("Expected 401 but was %d\n", resp.StatusCode)
-		return
-	}
+	util.AssertNoError(err, t)
+	util.AssertStatusCode(resp, 401, t)
 
 	//Invalid token
 	invalidRequest, _ := http.NewRequest("GET", "http://localhost:8181/test", nil)
 	invalidRequest.Header.Set("Authorization", "Bearer 12345")
 	resp, err = http.DefaultClient.Do(invalidRequest)
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	} else if resp.StatusCode != 401 {
-		t.Errorf("Expected 401 but was %d\n", resp.StatusCode)
-		return
-	}
+
+	util.AssertNoError(err, t)
+	util.AssertStatusCode(resp, 401, t)
 }
+
+
+
+//func TestScopeRequirements(t *testing.T) {
+//	//Register a client with no scopes using admin credentials
+//	createClientRequest := map[string]interface{}{}
+//	messageBytes, _ := json.Marshal(createClientRequest)
+//
+//	post, _ := http.NewRequest("POST", "http://localhost:8081/admin/clients",
+//		bytes.NewReader(messageBytes))
+//	post.Header.Set("Content-Type", "application/json")
+//	post.Header.Set("Authorization", "Basic "+creds.String())
+//
+//	response, err := http.DefaultClient.Do(post)
+//
+//	util.AssertNoError(err, t)
+//
+//	if response.StatusCode != 200 {
+//		t.Errorf("Expected 200 but was %d\n", response.StatusCode)
+//		return
+//	}
+//
+//	body, err := ioutil.ReadAll(response.Body)
+//	responseMessage := map[string]interface{}{}
+//	err = json.Unmarshal(body, responseMessage)
+//
+//	//Request a token with new client
+//
+//	//Register another client... it should fail
+//
+//}
 
 func validateToken(token string) bool {
 	post, _ := http.NewRequest("POST", "http://localhost:8081/introspect",
@@ -163,21 +178,12 @@ func validateToken(token string) bool {
 func TestErrorResponse(t *testing.T) {
 
 	response, err := http.Post("http://localhost:8081/token", "application/json", strings.NewReader(""))
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
+	util.AssertNoError(err, t)
 
-	if response.StatusCode != 400 {
-		t.Errorf("Expected 400 but got %s", response.StatusCode)
-		return
-	}
+	util.AssertStatusCode(response, 400, t)
 
 	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-		return
-	}
+	util.AssertNoError(err, t)
 
 	errorResponse := oauth_wire.ErrorResponse{} //TODO: remove dependency on "production" type
 
@@ -200,11 +206,8 @@ func TestErrorResponse(t *testing.T) {
 func TestAuthorize(t *testing.T) {
 
 	_, err := requestAdminToken(*creds)
-	if err != nil {
-		t.Errorf("Unexpected error %+v", err)
-	}
+	util.AssertNoError(err, t)
 	//fmt.Printf("Token: %+v, %+v", token, err)
-	return
 
 	//Register a client and get back client id and secret
 
