@@ -49,7 +49,7 @@ func (server *AuthServer) Start() (*oauth_service.Credentials, error) {
 
 	//TODO: make generation of startup credentials a configuration option
 
-	return clientStore.RegisterClient("Root Admin", []string{"administrate"})
+	return clientStore.RegisterClient("Root Admin", []string{"administrate", "introspect"})
 
 }
 
@@ -87,7 +87,7 @@ func init() {
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", authorization.AuthorizeHandler)
 	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
-		accesscontrol.NewClientAccessControlFn(clientStore.LookupClient), tokenStore.GetToken))
+		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", admin.NewRegisterClientHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
 }
