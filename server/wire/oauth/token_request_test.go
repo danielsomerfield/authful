@@ -98,13 +98,27 @@ func TestTokenRequestWithBearerInHeadersAndBodyFails(t *testing.T) {
 
 }
 
-func TestTokenRequestWithMultipleColonFails(t *testing.T) {
+func TestTokenRequestWithUnparseableFormFails(t *testing.T) {
 	token := base64.StdEncoding.EncodeToString([]byte("the-client-id:the-client-secret:five"))
 	req := http.Request{
 		Body: nil,
 		Method: "POST",
 		Header: map[string][]string{
 			"Authorization": {"Basic " + token},
+		},
+	}
+	_, err := ParseTokenRequest(req)
+	if err != ERR_INVALID_REQUEST {
+		t.Errorf("Expected %s but got %+v", ERR_INVALID_REQUEST, err)
+		return
+	}
+}
+
+func TestClientCredentialsRequiresClientIdAndSecret(t *testing.T) {
+	req := http.Request{
+		Form: url.Values{
+			"grant_type":    []string{"client_credentials"},
+			"scope":         []string{"foo bar"},
 		},
 	}
 	_, err := ParseTokenRequest(req)

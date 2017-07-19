@@ -6,6 +6,7 @@ import (
 	"log"
 	"github.com/danielsomerfield/authful/server/wire"
 	"github.com/danielsomerfield/authful/server/wire/authentication"
+	"strings"
 )
 
 var GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials"
@@ -30,7 +31,6 @@ func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
 	tokenRequest := TokenRequest{}
 
 	//TODO: add support for required fields for other grant types
-	//TODO: e.g. : need a way to make sure client_id and client_secret are there if grant_type == "client_credentials"
 	fields := map[string]*wire.Mapping{
 		"grant_type":    wire.Required(&tokenRequest.GrantType),
 		"scope":         wire.Optional(&tokenRequest.Scope),
@@ -50,6 +50,12 @@ func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
 		} else {
 			tokenRequest.ClientId = clientCredentials.ClientId
 			tokenRequest.ClientSecret = clientCredentials.ClientSecret
+		}
+	}
+
+	if tokenRequest.GrantType == GRANT_TYPE_CLIENT_CREDENTIALS {
+		if strings.TrimSpace(tokenRequest.ClientId) == "" || strings.TrimSpace(tokenRequest.ClientSecret) == "" {
+			return nil, ERR_INVALID_REQUEST
 		}
 	}
 
