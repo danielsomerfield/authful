@@ -130,4 +130,26 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 	}
 }
 
+func TestRegisterClientHandler_registerReturnsErrorWithNoProvidedName(t *testing.T) {
+
+	setup()
+	registerClientRequest := map[string]interface{}{
+		"command": map[string]interface{}{
+			"scopes": []string{"scope-1", "scope-2"},
+		},
+	}
+
+	body, _ := json.Marshal(registerClientRequest)
+	response := handlers.DoEndpointRequest(
+		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body))
+
+	if response.HttpStatus != 400 {
+		t.Fatalf("Expected 400 but got %d\n", response.HttpStatus)
+	}
+
+	if len(registeredClients) != 0 {
+		t.Fatalf("Expected no clients to be registered: %+v\n", registeredClients)
+	}
+}
+
 //Test that registering the same client twice fails

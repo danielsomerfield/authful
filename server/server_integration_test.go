@@ -118,7 +118,11 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 
 func TestScopeRequirements(t *testing.T) {
 	//Register a client with no scopes using admin credentials
-	createClientRequest := map[string]interface{}{}
+	createClientRequest := map[string]interface{}{
+		"command": map[string]string{
+			"name": "Test Client",
+		},
+	}
 	messageBytes, _ := json.Marshal(createClientRequest)
 
 	post, _ := http.NewRequest("POST", "http://localhost:8081/admin/clients",

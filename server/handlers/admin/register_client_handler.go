@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"log"
 	"github.com/danielsomerfield/authful/server/handlers"
+	"strings"
+	"fmt"
 )
 
 func NewRegisterClientHandler(
@@ -59,6 +61,10 @@ func ParseRegisterClientRequest(request *http.Request) (*RegisterClientCommand, 
 	if err == nil {
 		registerClientRequest = &RegisterClientRequest{}
 		err = json.Unmarshal(body, &registerClientRequest)
+	}
+
+	if strings.TrimSpace(registerClientRequest.Command.Name) == "" {
+		return nil, fmt.Errorf("Missing required field \"name\"")
 	}
 
 	return &registerClientRequest.Command, err
