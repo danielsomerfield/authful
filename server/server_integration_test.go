@@ -139,6 +139,8 @@ func TestScopeRequirements(t *testing.T) {
 	data, converted := responseMessage["data"].(map[string]interface{})
 	util.AssertTrue(converted, "Data was converted", t)
 
+	//TODO: validate the client was registered
+
 	//Register another client with the new client. it should fail
 	post, _ = http.NewRequest("POST", "http://localhost:8081/admin/clients",
 		bytes.NewReader(messageBytes))
