@@ -1,6 +1,9 @@
-package main // import "github.com/danielsomerfield/authful"
+package main
+
 import "github.com/danielsomerfield/authful/server"
 
 func main() {
-	server.NewAuthServer(8080).Start()
+	server := server.NewAuthServer(8080)
+	server.Start()
+	server.Wait()
 }

@@ -17,6 +17,7 @@ import (
 type AuthServer struct {
 	port       int
 	httpServer http.Server
+	running chan bool
 }
 
 func NewAuthServer(port int) *AuthServer {
@@ -31,6 +32,8 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (server *AuthServer) Start() (*oauth_service.Credentials, error) {
+	log.Printf("Starting server up http server on port %d\n", server.port)
+
 	go func() {
 		httpServer := http.Server{Addr: fmt.Sprintf(":%v", server.port)}
 		err := httpServer.ListenAndServe()
@@ -39,12 +42,19 @@ func (server *AuthServer) Start() (*oauth_service.Credentials, error) {
 		} else {
 			log.Printf("Server started on port %v\n", server.port)
 		}
+		server.running <- false
 	}()
+
+	server.running = make(chan bool)
 
 	//TODO: make generation of startup credentials a configuration option
 
 	return clientStore.RegisterClient("Root Admin", []string{"administrate"})
 
+}
+
+func (server *AuthServer) Wait() {
+	<-server.running
 }
 
 func (server *AuthServer) Stop() error {

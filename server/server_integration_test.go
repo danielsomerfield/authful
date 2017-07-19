@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"testing"
@@ -12,7 +12,6 @@ import (
 	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
 	oauth_wire "github.com/danielsomerfield/authful/server/wire/oauth"
 	"time"
-	"github.com/danielsomerfield/authful/server"
 	"os"
 	"log"
 	"regexp"
@@ -23,7 +22,7 @@ import (
 var creds *oauth_service.Credentials = nil
 
 func TestMain(m *testing.M) {
-	var authServer *server.AuthServer
+	var authServer *AuthServer
 	var err error
 
 	authServer, creds, err = RunServer()
@@ -244,7 +243,7 @@ type HealthCheck struct {
 	Status string `json:"status"`
 }
 
-func WaitForServer(server *server.AuthServer) error {
+func WaitForServer(server *AuthServer) error {
 	var err error = nil
 	var resp *http.Response = nil
 	var healthcheck HealthCheck
@@ -271,8 +270,8 @@ func WaitForServer(server *server.AuthServer) error {
 	return err
 }
 
-func RunServer() (*server.AuthServer, *oauth_service.Credentials, error) {
-	authServer := server.NewAuthServer(8081)
+func RunServer() (*AuthServer, *oauth_service.Credentials, error) {
+	authServer := NewAuthServer(8081)
 
 	var credentials *oauth_service.Credentials
 	credentials, err := authServer.Start()
