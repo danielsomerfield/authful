@@ -98,10 +98,19 @@ func TestTokenRequestWithBearerInHeadersAndBodyFails(t *testing.T) {
 
 }
 
-//TODO: check if form isn't parseable
+func TestTokenRequestWithMultipleColonFails(t *testing.T) {
+	token := base64.StdEncoding.EncodeToString([]byte("the-client-id:the-client-secret:five"))
+	req := http.Request{
+		Body: nil,
+		Method: "POST",
+		Header: map[string][]string{
+			"Authorization": {"Basic " + token},
+		},
+	}
+	_, err := ParseTokenRequest(req)
+	if err != ERR_INVALID_REQUEST {
+		t.Errorf("Expected %s but got %+v", ERR_INVALID_REQUEST, err)
+		return
+	}
 
-//TODO: support for flows other than client credentials
-
-//TODO: ensure that header and body methods together is an error
-
-//TODO: ensure that header with multiple : fails
+}

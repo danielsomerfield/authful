@@ -18,11 +18,13 @@ type TokenRequest struct {
 }
 
 var ERR_INVALID_CLIENT = errors.New("invalid_client")
+var ERR_INVALID_REQUEST = errors.New("invalid_request")
 
 func ParseTokenRequest(httpRequest http.Request) (*TokenRequest, error) {
 
 	if err := httpRequest.ParseForm(); err != nil {
-		return nil, err
+		log.Printf("Failed to parse form due to error: %+v", err)
+		return nil, ERR_INVALID_REQUEST
 	}
 
 	tokenRequest := TokenRequest{}
