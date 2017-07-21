@@ -36,8 +36,8 @@ func (server *AuthServer) Start() (*oauth_service.Credentials, error) {
 
 	go func() {
 		httpServer := http.Server{Addr: fmt.Sprintf(":%v", server.port)}
-		err := httpServer.ListenAndServe()
-		if err == nil {
+		err := httpServer.ListenAndServeTLS("../resources/test/server.crt", "../resources/test/server.key")
+		if err != nil {
 			log.Fatalf("Failed to start up http server %s\n", err)
 		} else {
 			log.Printf("Server started on port %v\n", server.port)
