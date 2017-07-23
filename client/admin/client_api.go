@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"io/ioutil"
 	"github.com/danielsomerfield/authful/common/wire"
+	"crypto/x509"
+	"crypto/tls"
 )
 
 type ClientRegistration struct {
@@ -29,9 +31,41 @@ func (ce ClientError) ErrorType() string {
 	return ce.errorType
 }
 
-func RegisterClient(clientId string, clientSecret string, clientName string, httpClient *http.Client) (*ClientRegistration, error) {
+type APIClient struct {
+	httpClient   *http.Client
+	host         string
+	clientId     string
+	clientSecret string
+}
+
+func NewAPIClient(host string, clientId string, clientSecret string, caCertFiles []string) (*APIClient, error) {
+	caCertPool := x509.NewCertPool()
+	for _, file := range caCertFiles {
+		caCert, err := ioutil.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read CA cerficiate at %s", file)
+		}
+		if !caCertPool.AppendCertsFromPEM(caCert) {
+			return nil, fmt.Errorf("Failed to add CA cerficiate at %s", file)
+		}
+	}
+
+	return &APIClient{
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: caCertPool,
+				},
+			}},
+		host:         host,
+		clientId:     clientId,
+		clientSecret: clientSecret,
+	}, nil
+}
+
+func (apiClient *APIClient) RegisterClient(clientName string) (*ClientRegistration, error) {
 	credentials := base64.StdEncoding.EncodeToString([]byte(
-		fmt.Sprintf("%s:%s", url.QueryEscape(clientId), url.QueryEscape(clientSecret))))
+		fmt.Sprintf("%s:%s", url.QueryEscape(apiClient.clientId), url.QueryEscape(apiClient.clientSecret))))
 
 	createClientRequest := map[string]interface{}{
 		"command": map[string]string{
@@ -45,7 +79,7 @@ func RegisterClient(clientId string, clientSecret string, clientName string, htt
 	post.Header.Set("Content-Type", "application/json")
 	post.Header.Set("Authorization", "Basic "+credentials)
 
-	response, e := httpClient.Do(post)
+	response, e := apiClient.httpClient.Do(post)
 	if e != nil {
 		return nil, ClientError{"ClientError", e.Error()}
 	}

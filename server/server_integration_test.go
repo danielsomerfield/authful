@@ -24,69 +24,33 @@ import (
 
 var creds *oauth_service.Credentials = nil
 
-func TestMain(m *testing.M) {
-	var authServer *AuthServer
-	var err error
+const TEST_CERTIFICATE = "../resources/test/server.crt"
 
-	authServer, creds, err = RunServer()
-	if err != nil {
-		log.Fatalf("Unexpected error on startup: %+v", err)
-		return
-	}
-	result := m.Run()
-	err = authServer.Stop()
+func TestAuthorize(t *testing.T) {
 
-	if err != nil {
-		log.Fatalf("Unexpected error on stop: %+v", err)
-		return
-	}
+	_, err := requestAdminToken(*creds)
+	util.AssertNoError(err, t)
 
-	os.Exit(result)
-}
+	//Register a client and get back client id and secret
 
-func CreateHttpsClient() *http.Client {
-	caCert, err := ioutil.ReadFile("../resources/test/server.crt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		}}
-}
+	//Register a user
 
-func requestAdminToken(credentials oauth_service.Credentials) (*oauth_wire.TokenResponse, error) {
-	var err error = nil
-
-	var request *http.Request
-	if request, err = http.NewRequest("POST", "https://localhost:8081/token",
-		strings.NewReader("grant_type=client_credentials")); err != nil {
-		return nil, err
-	}
-
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	request.Header.Set("Authorization", "Basic "+credentials.String())
-
-	var response *http.Response
-	var body []byte
-
-	httpsClient := CreateHttpsClient()
-
-	response, err = httpsClient.Do(request)
-
-	body, err = ioutil.ReadAll(response.Body)
-
-	tokenResponse := oauth_wire.TokenResponse{}
-	err = json.Unmarshal(body, &tokenResponse)
-	if err == nil {
-		return &tokenResponse, nil
-	} else {
-		return nil, err
-	}
+	//Hit the authorization endpoint
+	//resp, err = http.Get("https://localhost:8081/authorize?request_type=code?client_id=1234")
+	//
+	////Ensure that the user is authentcated and prompted for approval
+	//if err == nil {
+	//	if resp.StatusCode == 200 {
+	//		body, err = ioutil.ReadAll(resp.Body)
+	//		if err == nil {
+	//			print(string(body))
+	//		}
+	//	} else {
+	//		t.Errorf("Expected status code 200 but was %s", resp.StatusCode)
+	//	}
+	//} else {
+	//
+	//}
 }
 
 func TestClientCredentialsEnd2End(t *testing.T) {
@@ -94,8 +58,6 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 	go func() {
 		httpServer := http.Server{Addr: ":8181"}
 		http.HandleFunc("/test", func(w http.ResponseWriter, request *http.Request) {
-			//body, err := ioutil.ReadAll(request.Body)
-			//fmt.Printf("/test: body = %+v err = %+v headers = %+v\n", body, err, request.Header)
 			bearerHeader := request.Header.Get("Authorization")
 			bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
 			if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
@@ -145,52 +107,26 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 
 func TestScopeRequirements(t *testing.T) {
 
-	httpsClient := CreateHttpsClient()
+	apiClient, err := createAPIClient()
+	util.AssertNoError(err, t)
 
 	//Register a client with no scopes using admin credentials
-	registration, err := admin.RegisterClient(creds.ClientId, creds.ClientSecret, "test-client", httpsClient)
+	registration, err := apiClient.RegisterClient("test-client")
 	util.AssertNoError(err, t)
 	util.AssertNotNil(registration, t)
 
 	//TODO: validate the client was registered
 
-	//Register another client with the new client. it should fail
-	insufficientCredentials := oauth_service.Credentials{
-		ClientId:     registration.ClientId,
-		ClientSecret: registration.ClientSecret,
-	}
+	apiClientInsufficientCreds, err := admin.NewAPIClient("https://localhost:8081",
+		registration.ClientId,
+		registration.ClientSecret,
+		[]string{"../resources/test/server.crt"},
+	)
+	util.AssertNoError(err, t)
 
-	_, err = admin.RegisterClient(insufficientCredentials.ClientId, insufficientCredentials.ClientSecret, "test-client-2", httpsClient)
+	_, err = apiClientInsufficientCreds.RegisterClient("test-client-2")
 	util.AssertNotNil(err, t)
 	util.AssertTrue(err.(admin.ClientError).ErrorType() == "invalid_client", "Expected to equal \"invalid_client\"", t)
-}
-
-func validateToken(token string) bool {
-	post, _ := http.NewRequest("POST", "https://localhost:8081/introspect",
-		strings.NewReader(fmt.Sprintf("token=%s", token)))
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	post.Header.Set("Authorization", "Basic "+creds.String())
-
-	response, err := CreateHttpsClient().Do(post)
-
-	if err != nil {
-		log.Printf("Failed to execute introspection request: %+v\n", err)
-		return false
-	} else if response.StatusCode != 200 {
-		log.Printf("Request to introspection endpoint failed with status code %d\n", response.StatusCode)
-		return false
-	} else {
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Printf("Failed to read http body: %+v\n", err)
-			return false
-		}
-		responseJSON := map[string]interface{}{}
-		err = json.Unmarshal(body, &responseJSON)
-		validated := responseJSON["active"]
-		log.Printf("Validated: %b", validated)
-		return validated == true
-	}
 }
 
 func TestErrorResponse(t *testing.T) {
@@ -221,31 +157,70 @@ func TestErrorResponse(t *testing.T) {
 	}
 }
 
-func TestAuthorize(t *testing.T) {
+func createAPIClient() (*admin.APIClient, error) {
+	return admin.NewAPIClient("https://localhost:8081",
+		creds.ClientId,
+		creds.ClientSecret,
+		[]string{TEST_CERTIFICATE},
+	)
+}
 
-	_, err := requestAdminToken(*creds)
-	util.AssertNoError(err, t)
+func validateToken(token string) bool {
+	post, _ := http.NewRequest("POST", "https://localhost:8081/introspect",
+		strings.NewReader(fmt.Sprintf("token=%s", token)))
+	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	post.Header.Set("Authorization", "Basic "+creds.String())
 
-	//Register a client and get back client id and secret
+	response, err := CreateHttpsClient().Do(post)
 
-	//Register a user
+	if err != nil {
+		log.Printf("Failed to execute introspection request: %+v\n", err)
+		return false
+	} else if response.StatusCode != 200 {
+		log.Printf("Request to introspection endpoint failed with status code %d\n", response.StatusCode)
+		return false
+	} else {
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("Failed to read http body: %+v\n", err)
+			return false
+		}
+		responseJSON := map[string]interface{}{}
+		err = json.Unmarshal(body, &responseJSON)
+		validated := responseJSON["active"]
+		log.Printf("Validated: %b", validated)
+		return validated == true
+	}
+}
 
-	//Hit the authorization endpoint
-	//resp, err = http.Get("https://localhost:8081/authorize?request_type=code?client_id=1234")
-	//
-	////Ensure that the user is authentcated and prompted for approval
-	//if err == nil {
-	//	if resp.StatusCode == 200 {
-	//		body, err = ioutil.ReadAll(resp.Body)
-	//		if err == nil {
-	//			print(string(body))
-	//		}
-	//	} else {
-	//		t.Errorf("Expected status code 200 but was %s", resp.StatusCode)
-	//	}
-	//} else {
-	//
-	//}
+func requestAdminToken(credentials oauth_service.Credentials) (*oauth_wire.TokenResponse, error) {
+	var err error = nil
+
+	var request *http.Request
+	if request, err = http.NewRequest("POST", "https://localhost:8081/token",
+		strings.NewReader("grant_type=client_credentials")); err != nil {
+		return nil, err
+	}
+
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Authorization", "Basic "+credentials.String())
+
+	var response *http.Response
+	var body []byte
+
+	httpsClient := CreateHttpsClient()
+
+	response, err = httpsClient.Do(request)
+
+	body, err = ioutil.ReadAll(response.Body)
+
+	tokenResponse := oauth_wire.TokenResponse{}
+	err = json.Unmarshal(body, &tokenResponse)
+	if err == nil {
+		return &tokenResponse, nil
+	} else {
+		return nil, err
+	}
 }
 
 type HealthCheck struct {
@@ -291,4 +266,39 @@ func RunServer() (*AuthServer, *oauth_service.Credentials, error) {
 	}
 
 	return authServer, credentials, err
+}
+
+func TestMain(m *testing.M) {
+	var authServer *AuthServer
+	var err error
+
+	authServer, creds, err = RunServer()
+	if err != nil {
+		log.Fatalf("Unexpected error on startup: %+v", err)
+		return
+	}
+	result := m.Run()
+	err = authServer.Stop()
+
+	if err != nil {
+		log.Fatalf("Unexpected error on stop: %+v", err)
+		return
+	}
+
+	os.Exit(result)
+}
+
+func CreateHttpsClient() *http.Client {
+	caCert, err := ioutil.ReadFile(TEST_CERTIFICATE)
+	if err != nil {
+		log.Fatal(err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+		}}
 }
