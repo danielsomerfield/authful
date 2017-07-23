@@ -32,6 +32,9 @@ func TestAuthorize(t *testing.T) {
 	util.AssertNoError(err, t)
 
 	//Register a client and get back client id and secret
+	registration, err := createAPIClient(t).RegisterClient("test-authorize")
+	util.AssertNoError(err, t)
+	util.AssertNotNil(registration, t)
 
 	//Register a user
 
@@ -107,8 +110,7 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 
 func TestScopeRequirements(t *testing.T) {
 
-	apiClient, err := createAPIClient()
-	util.AssertNoError(err, t)
+	apiClient := createAPIClient(t)
 
 	//Register a client with no scopes using admin credentials
 	registration, err := apiClient.RegisterClient("test-client")
@@ -157,12 +159,14 @@ func TestErrorResponse(t *testing.T) {
 	}
 }
 
-func createAPIClient() (*admin.APIClient, error) {
-	return admin.NewAPIClient("https://localhost:8081",
+func createAPIClient(t *testing.T) (*admin.APIClient) {
+	apiClient, err := admin.NewAPIClient("https://localhost:8081",
 		creds.ClientId,
 		creds.ClientSecret,
 		[]string{TEST_CERTIFICATE},
 	)
+	util.AssertNoError(err, t)
+	return apiClient
 }
 
 func validateToken(token string) bool {
