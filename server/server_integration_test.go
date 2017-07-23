@@ -16,10 +16,10 @@ import (
 	"log"
 	"regexp"
 	"github.com/danielsomerfield/authful/util"
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"golang.org/x/oauth2"
+	"github.com/danielsomerfield/authful/client/admin"
 )
 
 var creds *oauth_service.Credentials = nil
@@ -111,7 +111,6 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 		}
 	}()
 
-
 	config := clientcredentials.Config{
 		ClientID:     creds.ClientId,
 		ClientSecret: creds.ClientSecret,
@@ -145,48 +144,25 @@ func TestClientCredentialsEnd2End(t *testing.T) {
 }
 
 func TestScopeRequirements(t *testing.T) {
+
+	httpsClient := CreateHttpsClient()
+
 	//Register a client with no scopes using admin credentials
-	createClientRequest := map[string]interface{}{
-		"command": map[string]string{
-			"name": "Test Client",
-		},
-	}
-	messageBytes, _ := json.Marshal(createClientRequest)
-
-	post, _ := http.NewRequest("POST", "https://localhost:8081/admin/clients",
-		bytes.NewReader(messageBytes))
-	post.Header.Set("Content-Type", "application/json")
-	post.Header.Set("Authorization", "Basic "+creds.String())
-
-	response, err := CreateHttpsClient().Do(post)
-
+	registration, err := admin.RegisterClient(creds.ClientId, creds.ClientSecret, "test-client", httpsClient)
 	util.AssertNoError(err, t)
-	util.AssertStatusCode(response, 200, t)
-
-	body, err := ioutil.ReadAll(response.Body)
-	responseMessage := map[string]interface{}{}
-	err = json.Unmarshal(body, &responseMessage)
-	util.AssertNoError(err, t)
-
-	data, converted := responseMessage["data"].(map[string]interface{})
-	util.AssertTrue(converted, "Data was converted", t)
+	util.AssertNotNil(registration, t)
 
 	//TODO: validate the client was registered
 
 	//Register another client with the new client. it should fail
-	post, _ = http.NewRequest("POST", "https://localhost:8081/admin/clients",
-		bytes.NewReader(messageBytes))
-
 	insufficientCredentials := oauth_service.Credentials{
-		ClientId:     data["clientId"].(string),
-		ClientSecret: data["clientSecret"].(string),
+		ClientId:     registration.ClientId,
+		ClientSecret: registration.ClientSecret,
 	}
 
-	post.Header.Set("Content-Type", "application/json")
-	post.Header.Set("Authorization", "Basic "+insufficientCredentials.String())
-	response, err = CreateHttpsClient().Do(post)
-	util.AssertNoError(err, t)
-	util.AssertStatusCode(response, 401, t)
+	_, err = admin.RegisterClient(insufficientCredentials.ClientId, insufficientCredentials.ClientSecret, "test-client-2", httpsClient)
+	util.AssertNotNil(err, t)
+	util.AssertTrue(err.(admin.ClientError).ErrorType() == "invalid_client", "Expected to equal \"invalid_client\"", t)
 }
 
 func validateToken(token string) bool {
