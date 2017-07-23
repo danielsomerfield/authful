@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"github.com/danielsomerfield/authful/server/wire"
 	"log"
 	"net/http"
 	"encoding/json"
+	"github.com/danielsomerfield/authful/common/wire"
 )
 
 //TODO: refactor these with oauth_handler_utils
@@ -23,13 +23,11 @@ func InternalServerError(errorDescription string, w http.ResponseWriter) {
 func JsonError(errorType string, errorDescription string, errorURI string, httpStatus int, w http.ResponseWriter) {
 	w.WriteHeader(httpStatus)
 	errorMessageJSON, err := json.Marshal(wire.ErrorsResponse{
-		Errors: []wire.Error{
-			{
-				Status:    httpStatus,
-				ErrorType: errorType,
-				Detail:    errorDescription,
-				ErrorURI:  errorURI,
-			},
+		Error: wire.Error{
+			Status:    httpStatus,
+			ErrorType: errorType,
+			Detail:    errorDescription,
+			ErrorURI:  errorURI,
 		},
 	})
 	if err == nil {

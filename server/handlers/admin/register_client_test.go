@@ -105,24 +105,18 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 		t.Fatalf("Expected 401 but got %d\n", response.HttpStatus)
 	}
 
-	errors, converted := response.Json["errors"].([]interface{})
+	theError, converted := response.Json["error"].(map[string]interface{})
 
 	if !converted {
 		t.Fatalf("Failed to convert to expected type.")
 	}
-
-	if len(errors) != 1 {
-		t.Fatalf("Received unexpected error payload %+v\n", response.Json)
-	}
-
-	theError, converted := errors[0].(map[string]interface{})
 
 	if !converted {
 		t.Fatalf("Failed to convert to expected type.")
 	}
 
 	if theError["status"] != 401 && theError["errorType"] != "invalid_client" {
-		t.Fatalf("Unexpected error: %+v\n", errors[0])
+		t.Fatalf("Unexpected error: %+v\n", theError)
 	}
 
 	if len(registeredClients) != 0 {

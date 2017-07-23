@@ -1,7 +1,7 @@
 package wire
 
 type ErrorsResponse struct {
-	Errors []Error `json:"errors"`
+	Error Error `json:"error"`
 }
 
 type Error struct {

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"io/ioutil"
+	"github.com/danielsomerfield/authful/common/wire"
 )
 
 type ClientRegistration struct {
@@ -56,9 +57,9 @@ func RegisterClient(clientId string, clientSecret string, clientName string, htt
 	}
 
 	if response.StatusCode < 200 || response.StatusCode > 299 {
-		errorResponse := ErrorsResponse{}
+		errorResponse := wire.ErrorsResponse{}
 		json.Unmarshal(body, &errorResponse)
-		e := errorResponse.Errors[0]
+		e := errorResponse.Error
 		return nil, ClientError{e.ErrorType, e.Detail}
 	} else {
 		responseMessage := new(ClientRegistration)
@@ -68,15 +69,4 @@ func RegisterClient(clientId string, clientSecret string, clientName string, htt
 		}
 		return responseMessage, nil
 	}
-}
-
-type ErrorsResponse struct {
-	Errors []Error `json:"errors"`
-}
-
-type Error struct {
-	Status    int       `json:"status"`
-	Detail    string    `json:"detail"`
-	ErrorType string    `json:"errorType"`
-	ErrorURI  string    `json:"errorURI"`
 }
