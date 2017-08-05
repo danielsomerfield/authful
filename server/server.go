@@ -13,8 +13,8 @@ import (
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 	"github.com/danielsomerfield/authful/server/handlers/admin/client"
 	adminuser "github.com/danielsomerfield/authful/server/handlers/admin/user"
-	"errors"
 	usersvc "github.com/danielsomerfield/authful/server/service/admin/user"
+	user2 "github.com/danielsomerfield/authful/server/repository/user"
 )
 
 type AuthServer struct {
@@ -75,6 +75,7 @@ var tokenHandlerConfig = token.TokenHandlerConfig{
 //Injected Service Dependencies
 var tokenStore = oauthsvc.NewInMemoryTokenStore()
 var clientStore = oauthsvc.NewInMemoryClientStore()
+var userRepository = user2.NewInMemoryUserRepository()
 
 func currentTimeFn() time.Time {
 	return time.Now()
@@ -93,9 +94,13 @@ func init() {
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", client.NewRegisterClientHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
+
+	hashFunc := func(input string) []byte {
+		return []byte{}
+	}
+
 	http.HandleFunc("/admin/users", adminuser.NewRegisterUserHandler(
-		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), func(user usersvc.User) error {
-			return errors.New("NYI")
-		}))
+		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"),
+		usersvc.NewRegisterUserFn(userRepository.SaveUser, hashFunc)))
 
 }
