@@ -6,6 +6,7 @@ import (
 	wireUser "github.com/danielsomerfield/authful/server/wire/admin/user"
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 	"github.com/danielsomerfield/authful/server/service/admin/user"
+	"log"
 )
 
 
@@ -36,8 +37,14 @@ func NewRegisterUserHandler(accessControlFn accesscontrol.ClientAccessControlFn,
 			AuthMethods: command.AuthMethods,
 		}
 
-		registerUserFn(user)
+		err = registerUserFn(user)
+		if err != nil {
+			log.Printf("Failed with following error: %+v", err)
+			handlers.InvalidRequest("Failed to register the user.", w)
+		} else {
+			w.WriteHeader(http.StatusCreated)
+			//TODO: write the register response
+		}
 
-		w.WriteHeader(http.StatusCreated)
 	}
 }

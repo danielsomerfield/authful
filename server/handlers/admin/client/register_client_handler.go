@@ -43,7 +43,7 @@ func NewRegisterClientHandler(
 						ClientSecret: credentials.ClientSecret,
 					},
 				})
-				handlers.WriteOrError(w, bytes, err)
+				handlers.WriteOrInternalError(w, bytes, err)
 			} else {
 				log.Printf("Failed to register the client: %+v", err)
 				handlers.InternalServerError("An unexpected error occurred", w)

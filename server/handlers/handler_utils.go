@@ -37,12 +37,16 @@ func JsonError(errorType string, errorDescription string, errorURI string, httpS
 	}
 }
 
-func WriteOrError(w http.ResponseWriter, bytes []byte, err error) {
+func WriteOrError(w http.ResponseWriter, bytes []byte, err error, errorCode int, errorType string, errorDescription string, errorURI string) {
 	if err == nil {
 		w.Write(bytes)
 	} else {
 		log.Printf("Failed with following error: %+v", err)
-		JsonError("unknown", "an unexpected error occurred", "",
-			http.StatusInternalServerError, w)
+		JsonError(errorType, errorDescription, errorURI,
+			errorCode, w)
 	}
+}
+
+func WriteOrInternalError(w http.ResponseWriter, bytes []byte, err error) {
+	WriteOrError(w, bytes, err, http.StatusInternalServerError, "unknown", "an unexpected error occurred", "")
 }

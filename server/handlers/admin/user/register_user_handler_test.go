@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"github.com/danielsomerfield/authful/server/service/admin/user"
+	"errors"
 )
 
 var registeredUsers = map[string]user.User{}
@@ -125,6 +126,37 @@ func TestRegisterUserHandler_access_control_fails(t *testing.T) {
 		util.AssertTrue(response.HttpStatus == 401, fmt.Sprintf("Http status is 401"), t)
 		util.AssertEquals(errorJson["errorType"], "invalid_client", t)
 		util.AssertTrue(len(registeredUsers) == 0, "There should be no registered users", t)
+		return nil
+	}, t)
+}
+
+func TestRegisterUserHandler_registration_fails(t *testing.T) {
+	setup()
+
+	registerRequest := map[string]interface{}{
+		"command": map[string]interface{}{
+			"username":    "user1",
+			"password":    "user1password",
+			"authMethods": []string{"username-password"},
+		},
+	}
+
+	body, _ := json.Marshal(registerRequest)
+
+	var mockFailingRegisterUserFn = func(user user.User) error {
+		return errors.New("Failed for some reason")
+	}
+
+	handlers.DoEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockFailingRegisterUserFn), string(body)).
+		ThenAssert(func(response *handlers.EndpointResponse) error {
+
+		errorResponse := response.Json
+		errorJson, converted := errorResponse["error"].(map[string]interface{})
+
+		util.AssertTrue(converted, "Error message exists in response", t)
+		util.AssertTrue(errorJson != nil, "There is an error in the response", t)
+		util.AssertTrue(response.HttpStatus == 400, fmt.Sprintf("Http status is 401"), t)
+		util.AssertEquals(errorJson["errorType"], "invalid_request", t)
 		return nil
 	}, t)
 }
