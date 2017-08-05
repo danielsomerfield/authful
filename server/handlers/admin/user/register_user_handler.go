@@ -1,4 +1,4 @@
-package admin
+package user
 
 import (
 	"net/http"
@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"fmt"
+	"strings"
+	"errors"
 )
 
 //TODO: move this to the service area
 type RegisterUserFn func(user User) error
 type User struct {
-	username string
-	password string
-	scopes   []string
+	username    string
+	password    string
+	authMethods []string
 }
 
 func NewRegisterUserHandler(registerUserFn RegisterUserFn) http.HandlerFunc {
@@ -28,9 +29,9 @@ func NewRegisterUserHandler(registerUserFn RegisterUserFn) http.HandlerFunc {
 
 		command := registerUserRequest.Command
 		user := User{
-			username: command.Username,
-			password: command.Password,
-			scopes:   command.Scopes,
+			username:    command.Username,
+			password:    command.Password,
+			authMethods: command.AuthMethods,
 		}
 
 		registerUserFn(user)
@@ -47,8 +48,17 @@ func ParseRegisterUserRequest(r *http.Request) (*RegisterUserRequest, error) {
 		if err != nil {
 			log.Printf("Failed to unmarshal RegisterUserRequest: %s", string(body))
 		} else {
-			fmt.Printf("wire: %s", string(body))
-			fmt.Printf("request: %+v", request)
+			if strings.TrimSpace(request.Command.Username) == "" {
+				return nil, errors.New("Missing field 'username'")
+			}
+
+			if strings.TrimSpace(request.Command.Password) == "" {
+				return nil, errors.New("Missing field 'password'")
+			}
+
+			if len(request.Command.AuthMethods) == 0 {
+				return nil, errors.New("Missing field 'authMethods'")
+			}
 
 			return request, nil
 		}
@@ -62,9 +72,7 @@ type RegisterUserRequest struct {
 }
 
 type RegisterUserCommand struct {
-	Username string 	`json:"username,omitempty"`
-	Password string 	`json:"password,omitempty"`
-	Scopes   []string	`json:"scopes"`
+	Username    string    `json:"username,omitempty"`
+	Password    string    `json:"password,omitempty"`
+	AuthMethods []string    `json:"authMethods"`
 }
-
-

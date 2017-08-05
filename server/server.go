@@ -11,13 +11,13 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers/oauth/authorization"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/introspection"
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
-	"github.com/danielsomerfield/authful/server/handlers/admin"
+	"github.com/danielsomerfield/authful/server/handlers/admin/client"
 )
 
 type AuthServer struct {
 	port       int
 	httpServer http.Server
-	running chan bool
+	running    chan bool
 }
 
 func NewAuthServer(port int) *AuthServer {
@@ -88,6 +88,6 @@ func init() {
 	http.HandleFunc("/authorize", authorization.AuthorizeHandler)
 	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
-	http.HandleFunc("/admin/clients", admin.NewRegisterClientHandler(
+	http.HandleFunc("/admin/clients", client.NewRegisterClientHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
 }

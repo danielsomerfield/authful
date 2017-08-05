@@ -1,4 +1,4 @@
-package admin
+package client
 
 import (
 	"github.com/danielsomerfield/authful/server/handlers"
