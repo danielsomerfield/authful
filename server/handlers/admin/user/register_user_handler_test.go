@@ -45,7 +45,7 @@ func TestRegisterUserHandler_registers_valid_user(t *testing.T) {
 		authMethods: []string{"username-password"},
 	}
 
-	handlers.DoEndpointRequest(NewRegisterUserHandler(mockRegisterUserFn, mockSucceedingClientAccessControlFn), string(body)).
+	handlers.DoEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
 		util.AssertTrue(response.HttpStatus == 201, "Http status is 201", t)
 		util.AssertTrue(len(registeredUsers) == 1, "There is 1 registered user", t)
@@ -68,8 +68,8 @@ func TestRegisterUserHandler_malformed_message_fails(t *testing.T) {
 	}, 400, "invalid_request", t)
 
 	runMalformedMessageTest(map[string]interface{}{
-		"username":    "user1",
-		"password":    "user1password",
+		"username": "user1",
+		"password": "user1password",
 	}, 400, "invalid_request", t)
 }
 
@@ -81,7 +81,7 @@ func runMalformedMessageTest(command map[string]interface{}, expectedCode int, e
 	}
 	body, _ := json.Marshal(registerRequest)
 
-	handlers.DoEndpointRequest(NewRegisterUserHandler(mockRegisterUserFn, mockSucceedingClientAccessControlFn), string(body)).
+	handlers.DoEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
 
 		errorResponse := response.Json
@@ -111,7 +111,7 @@ func TestRegisterUserHandler_access_control_fails(t *testing.T) {
 
 	body, _ := json.Marshal(registerRequest)
 
-	handlers.DoEndpointRequest(NewRegisterUserHandler(mockRegisterUserFn, mockFailingClientAccessControlFn), string(body)).
+	handlers.DoEndpointRequest(NewRegisterUserHandler(mockFailingClientAccessControlFn, mockRegisterUserFn), string(body)).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
 
 		errorResponse := response.Json

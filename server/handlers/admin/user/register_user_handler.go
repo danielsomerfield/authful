@@ -15,7 +15,7 @@ type User struct {
 	authMethods []string
 }
 
-func NewRegisterUserHandler(registerUserFn RegisterUserFn, accessControlFn accesscontrol.ClientAccessControlFn) http.HandlerFunc {
+func NewRegisterUserHandler(accessControlFn accesscontrol.ClientAccessControlFn, registerUserFn RegisterUserFn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		authorized, err := accessControlFn(*r)

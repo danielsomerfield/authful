@@ -12,6 +12,8 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers/oauth/introspection"
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 	"github.com/danielsomerfield/authful/server/handlers/admin/client"
+	"github.com/danielsomerfield/authful/server/handlers/admin/user"
+	"errors"
 )
 
 type AuthServer struct {
@@ -90,4 +92,9 @@ func init() {
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", client.NewRegisterClientHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
+	http.HandleFunc("/admin/users", user.NewRegisterUserHandler(
+		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), func(user user.User) error {
+			return errors.New("NYI")
+		}))
+
 }
