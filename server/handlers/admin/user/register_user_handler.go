@@ -5,17 +5,11 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers"
 	wireUser "github.com/danielsomerfield/authful/server/wire/admin/user"
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
+	"github.com/danielsomerfield/authful/server/service/admin/user"
 )
 
-//TODO: move this to the service area
-type RegisterUserFn func(user User) error
-type User struct {
-	username    string
-	password    string
-	authMethods []string
-}
 
-func NewRegisterUserHandler(accessControlFn accesscontrol.ClientAccessControlFn, registerUserFn RegisterUserFn) http.HandlerFunc {
+func NewRegisterUserHandler(accessControlFn accesscontrol.ClientAccessControlFn, registerUserFn user.RegisterUserFn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		authorized, err := accessControlFn(*r)
@@ -36,10 +30,10 @@ func NewRegisterUserHandler(accessControlFn accesscontrol.ClientAccessControlFn,
 		}
 
 		command := registerUserRequest.Command
-		user := User{
-			username:    command.Username,
-			password:    command.Password,
-			authMethods: command.AuthMethods,
+		user := user.User{
+			Username:    command.Username,
+			Password:    command.Password,
+			AuthMethods: command.AuthMethods,
 		}
 
 		registerUserFn(user)

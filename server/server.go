@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"fmt"
 	"log"
-	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
+	oauthsvc "github.com/danielsomerfield/authful/server/service/oauth"
 	"time"
 	"github.com/danielsomerfield/authful/util"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/token"
@@ -12,8 +12,9 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers/oauth/introspection"
 	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 	"github.com/danielsomerfield/authful/server/handlers/admin/client"
-	"github.com/danielsomerfield/authful/server/handlers/admin/user"
+	adminuser "github.com/danielsomerfield/authful/server/handlers/admin/user"
 	"errors"
+	usersvc "github.com/danielsomerfield/authful/server/service/admin/user"
 )
 
 type AuthServer struct {
@@ -33,7 +34,7 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("{\"status\":\"ok\"}"))
 }
 
-func (server *AuthServer) Start() (*oauth_service.Credentials, error) {
+func (server *AuthServer) Start() (*oauthsvc.Credentials, error) {
 	log.Printf("Starting server up http server on port %d\n", server.port)
 
 	go func() {
@@ -72,8 +73,8 @@ var tokenHandlerConfig = token.TokenHandlerConfig{
 }
 
 //Injected Service Dependencies
-var tokenStore = oauth_service.NewInMemoryTokenStore()
-var clientStore = oauth_service.NewInMemoryClientStore()
+var tokenStore = oauthsvc.NewInMemoryTokenStore()
+var clientStore = oauthsvc.NewInMemoryClientStore()
 
 func currentTimeFn() time.Time {
 	return time.Now()
@@ -92,8 +93,8 @@ func init() {
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", client.NewRegisterClientHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
-	http.HandleFunc("/admin/users", user.NewRegisterUserHandler(
-		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), func(user user.User) error {
+	http.HandleFunc("/admin/users", adminuser.NewRegisterUserHandler(
+		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), func(user usersvc.User) error {
 			return errors.New("NYI")
 		}))
 

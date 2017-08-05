@@ -7,12 +7,13 @@ import (
 	"github.com/danielsomerfield/authful/util"
 	"fmt"
 	"net/http"
+	"github.com/danielsomerfield/authful/server/service/admin/user"
 )
 
-var registeredUsers = map[string]User{}
+var registeredUsers = map[string]user.User{}
 
-var mockRegisterUserFn = func(user User) error {
-	registeredUsers[user.username] = user
+var mockRegisterUserFn = func(user user.User) error {
+	registeredUsers[user.Username] = user
 	return nil
 }
 
@@ -25,7 +26,7 @@ var mockFailingClientAccessControlFn = func(request http.Request) (bool, error) 
 }
 
 func setup() {
-	registeredUsers = map[string]User{}
+	registeredUsers = map[string]user.User{}
 }
 
 func TestRegisterUserHandler_registers_valid_user(t *testing.T) {
@@ -39,10 +40,10 @@ func TestRegisterUserHandler_registers_valid_user(t *testing.T) {
 	}
 	body, _ := json.Marshal(registerRequest)
 
-	expectedUser := User{
-		username:    "user1",
-		password:    "user1password",
-		authMethods: []string{"username-password"},
+	expectedUser := user.User{
+		Username:    "user1",
+		Password:    "user1password",
+		AuthMethods: []string{"username-password"},
 	}
 
 	handlers.DoEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
