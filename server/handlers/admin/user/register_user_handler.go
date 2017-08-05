@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/handlers"
 	wireUser "github.com/danielsomerfield/authful/server/wire/admin/user"
+	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 )
 
 //TODO: move this to the service area
@@ -14,8 +15,19 @@ type User struct {
 	authMethods []string
 }
 
-func NewRegisterUserHandler(registerUserFn RegisterUserFn) http.HandlerFunc {
+func NewRegisterUserHandler(registerUserFn RegisterUserFn, accessControlFn accesscontrol.ClientAccessControlFn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		authorized, err := accessControlFn(*r)
+
+		if !authorized {
+			if err != nil {
+				handlers.InternalServerError("An unexpected error occurred", w)
+			} else {
+				handlers.Unauthorized("The requested operation was denied.", w)
+			}
+			return
+		}
 
 		registerUserRequest, err := wireUser.ParseRegisterUserRequest(r)
 		if err != nil {
