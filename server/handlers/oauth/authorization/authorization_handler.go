@@ -10,10 +10,10 @@ import (
 )
 
 func NewAuthorizationHandler() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
-		req.ParseForm()
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
 
-		authorizationRequest, err := oauth.ParseAuthorizeRequest(*req)
+		authorizationRequest, err := oauth.ParseAuthorizeRequest(*r)
 		if err != nil {
 			log.Printf("Invalid authorization request due to error: %+v", err)
 			oauth_handlers.InvalidRequest(err.Error(), w)
@@ -21,10 +21,13 @@ func NewAuthorizationHandler() func(http.ResponseWriter, *http.Request) {
 		} else {
 			client := getClient(authorizationRequest.ClientId)
 			if client == nil {
-				//TODO: write back 401 and {"error": "invalid_client"}
+				log.Printf("Request for unknown client %s.", authorizationRequest.ClientId)
+				errorUrl := ""
+				http.Redirect(w, r, errorUrl, http.StatusFound)
 				return
 			}
 		}
+
 
 		//Reject if the redirect_uri doesn't match one configured with the client
 
