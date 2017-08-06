@@ -74,7 +74,7 @@ func (apiClient *APIClient) RegisterClient(clientName string) (*ClientRegistrati
 	}
 	messageBytes, _ := json.Marshal(createClientRequest)
 
-	post, _ := http.NewRequest("POST", "https://localhost:8081/admin/clients",
+	post, _ := http.NewRequest("POST", fmt.Sprintf("%s/admin/clients", apiClient.host),
 		bytes.NewReader(messageBytes))
 	post.Header.Set("Content-Type", "application/json")
 	post.Header.Set("Authorization", "Basic "+credentials)
@@ -104,3 +104,49 @@ func (apiClient *APIClient) RegisterClient(clientName string) (*ClientRegistrati
 		return responseMessage, nil
 	}
 }
+
+//type UserRegistration struct {}
+//
+//func (apiClient *APIClient) RegisterUser(username string, password string, authMethods []string) (*UserRegistration, error) {
+//	credentials := base64.StdEncoding.EncodeToString([]byte(
+//		fmt.Sprintf("%s:%s", url.QueryEscape(apiClient.clientId), url.QueryEscape(apiClient.clientSecret))))
+//
+//	createClientRequest := map[string]interface{}{
+//		"command": map[string]interface{}{
+//			"username": username,
+//			"password": password,
+//			"authMethods" : authMethods,
+//		},
+//	}
+//	messageBytes, _ := json.Marshal(createClientRequest)
+//
+//	post, _ := http.NewRequest("POST", "https://localhost:8081/admin/clients",
+//		bytes.NewReader(messageBytes))
+//	post.Header.Set("Content-Type", "application/json")
+//	post.Header.Set("Authorization", "Basic "+credentials)
+//
+//	response, e := apiClient.httpClient.Do(post)
+//	if e != nil {
+//		return nil, ClientError{"ClientError", e.Error()}
+//	}
+//
+//	body, e := ioutil.ReadAll(response.Body)
+//
+//	if e != nil {
+//		return nil, ClientError{"ClientError", e.Error()}
+//	}
+//
+//	if response.StatusCode < 200 || response.StatusCode > 299 {
+//		errorResponse := wire.ErrorsResponse{}
+//		json.Unmarshal(body, &errorResponse)
+//		e := errorResponse.Error
+//		return nil, ClientError{e.ErrorType, e.Detail}
+//	} else {
+//		responseMessage := new(ClientRegistration)
+//		e = json.Unmarshal(body, &responseMessage)
+//		if e != nil {
+//			return nil, ClientError{"ClientError", e.Error()}
+//		}
+//		return responseMessage, nil
+//	}
+//}

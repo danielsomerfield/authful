@@ -37,6 +37,7 @@ func TestAuthorize(t *testing.T) {
 	util.AssertNotNil(registration, t)
 
 	//Register a user
+	//_, err := createAPIClient(t).RegisterUser()
 
 	//Hit the authorization endpoint
 	//resp, err = http.Get("https://localhost:8081/authorize?request_type=code?client_id=1234")
