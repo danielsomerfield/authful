@@ -9,7 +9,9 @@ type UserRecord struct {
 type SaveUser func(userRecord UserRecord) error
 
 func NewInMemoryUserRepository() inMemoryUserRepository {
-	return inMemoryUserRepository{}
+	return inMemoryUserRepository{
+		userRecords: map[string]UserRecord{},
+	}
 }
 
 type inMemoryUserRepository struct {

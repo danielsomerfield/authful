@@ -32,12 +32,14 @@ func TestAuthorize(t *testing.T) {
 	util.AssertNoError(err, t)
 
 	//Register a client and get back client id and secret
-	registration, err := createAPIClient(t).RegisterClient("test-authorize")
+	apiClient := createAPIClient(t)
+	registration, err := apiClient.RegisterClient("test-authorize")
 	util.AssertNoError(err, t)
 	util.AssertNotNil(registration, t)
 
 	//Register a user
-	//_, err := createAPIClient(t).RegisterUser()
+	_, err = apiClient.RegisterUser("username-1", "password-1", []string{"username-password"})
+	util.AssertNoError(err, t)
 
 	//Hit the authorization endpoint
 	//resp, err = http.Get("https://localhost:8081/authorize?request_type=code?client_id=1234")
