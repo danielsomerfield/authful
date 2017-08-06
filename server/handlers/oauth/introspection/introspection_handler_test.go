@@ -39,7 +39,7 @@ var invalidBearerToken = "invalid-bearer-token"
 
 func TestIntrospectionHandler_ValidToken(t *testing.T) {
 
-	introspectWithToken(activeToken, validBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+	introspectWithToken(activeToken, validBearerToken).ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 200 {
 			return fmt.Errorf("Expected 200, but got %d", response.HttpStatus)
 		}
@@ -56,7 +56,7 @@ func TestIntrospectionHandler_ValidToken(t *testing.T) {
 }
 
 func TestIntrospectionHandler_UnknownToken(t *testing.T) {
-	introspectWithToken(unknownToken, validBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+	introspectWithToken(unknownToken, validBearerToken).ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 200 {
 			return fmt.Errorf("Expected 200, but got %d", response.HttpStatus)
 		}
@@ -68,7 +68,7 @@ func TestIntrospectionHandler_UnknownToken(t *testing.T) {
 }
 
 func TestIntrospectionHandler_ExpiredToken(t *testing.T) {
-	introspectWithToken(expiredToken, validBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+	introspectWithToken(expiredToken, validBearerToken).ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 200 {
 			return fmt.Errorf("Expected 200, but got %d", response.HttpStatus)
 		}
@@ -80,7 +80,7 @@ func TestIntrospectionHandler_ExpiredToken(t *testing.T) {
 }
 
 func TestIntrospectionHandler_InvalidBearer(t *testing.T) {
-	introspectWithToken(expiredToken, invalidBearerToken).ThenAssert(func(response *handlers.EndpointResponse) error {
+	introspectWithToken(expiredToken, invalidBearerToken).ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 401 {
 			return fmt.Errorf("Expected 401, but got %d", response.HttpStatus)
 		}
@@ -96,11 +96,11 @@ WWW-Authenticate: Bearer realm="example",
 
  */
 
-func introspectWithToken(tokenToValidate string, callingBearerToken string) *handlers.EndpointResponse {
+func introspectWithToken(tokenToValidate string, callingBearerToken string) *handlers.JSONEndpointResponse {
 	body := fmt.Sprintf("token=%s", tokenToValidate)
 	headers := map[string]string{
 		"Authorization": "Bearer " + callingBearerToken,
 	}
-	return handlers.DoEndpointRequestWithHeaders(
+	return handlers.DoPostEndpointRequestWithHeaders(
 		NewIntrospectionHandler(mockRequestValidation, mockGetTokenMetaDataFn), body, headers)
 }

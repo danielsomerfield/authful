@@ -56,7 +56,7 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 	}
 
 	body, _ := json.Marshal(registerClientRequest)
-	response := handlers.DoEndpointRequest(
+	response := handlers.DoPostEndpointRequest(
 		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body))
 
 	if response.HttpStatus != 200 {
@@ -98,7 +98,7 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 	}
 
 	body, _ := json.Marshal(registerClientRequest)
-	response := handlers.DoEndpointRequest(
+	response := handlers.DoPostEndpointRequest(
 		NewRegisterClientHandler(mockFailingClientAccessControlFn, mockRegisterClientFn), string(body))
 
 	if response.HttpStatus != 401 {
@@ -134,7 +134,7 @@ func TestRegisterClientHandler_registerReturnsErrorWithNoProvidedName(t *testing
 	}
 
 	body, _ := json.Marshal(registerClientRequest)
-	response := handlers.DoEndpointRequest(
+	response := handlers.DoPostEndpointRequest(
 		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body))
 
 	if response.HttpStatus != 400 {

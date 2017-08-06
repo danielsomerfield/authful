@@ -78,22 +78,22 @@ func TestTokenHandler_RejectsGetRequest(t *testing.T) {
 	}
 }
 
-func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, clientSecret string, scope string) *handlers.EndpointResponse {
+func doTokenEndpointRequestWithBodyAndScope(grantType string, clientId string, clientSecret string, scope string) *handlers.JSONEndpointResponse {
 	body := fmt.Sprintf("grant_type=%s&client_id=%s&client_secret=%s", grantType, clientId, clientSecret)
 	if scope != "" {
 		body = body + "&scope=" + scope
 	}
-	return handlers.DoEndpointRequest(
+	return handlers.DoPostEndpointRequest(
 		NewTokenHandler(tokenHandlerConfig, LookupClientFn, mockTokenGenerator, mockTokenStore.StoreToken, mockCurrentTimeFn), body)
 }
 
-func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSecret string) *handlers.EndpointResponse {
+func doTokenEndpointRequestWithBody(grantType string, clientId string, clientSecret string) *handlers.JSONEndpointResponse {
 	return doTokenEndpointRequestWithBodyAndScope(grantType, clientId, clientSecret, "")
 }
 
 func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 	doTokenEndpointRequestWithBodyAndScope("client_credentials", validClientId, validClientSecret, "scope1 scope2").
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 200 {
 			return fmt.Errorf("Expected 200, but got %d", response.HttpStatus)
 		}
@@ -130,7 +130,7 @@ func TestTokenHandler_ClientCredentialsWithValidData(t *testing.T) {
 
 func TestTokenHandler_UnknownClientInBody(t *testing.T) {
 	doTokenEndpointRequestWithBody("client_credentials", unknownClientId, validClientSecret).
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 401 {
 			return fmt.Errorf("Expected 401, but got %d", response.HttpStatus)
 		}
@@ -152,7 +152,7 @@ func TestTokenHandler_UnknownClientInBody(t *testing.T) {
 
 func TestTokenHandler_IncorrectSecret(t *testing.T) {
 	doTokenEndpointRequestWithBody("client_credentials", validClientId, invalidClientSecret).
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 401 {
 			return fmt.Errorf("Expected 401, but got %d", response.HttpStatus)
 		}
@@ -174,7 +174,7 @@ func TestTokenHandler_IncorrectSecret(t *testing.T) {
 
 func TestTokenHandler_UnknownGrantType(t *testing.T) {
 	doTokenEndpointRequestWithBody("not real", validClientId, validClientSecret).
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 400 {
 			return fmt.Errorf("Expected 400, but got %d", response.HttpStatus)
 		}
@@ -189,7 +189,7 @@ func TestTokenHandler_UnknownGrantType(t *testing.T) {
 
 func TestTokenHandler_ClientCredentialsWithInvalidScope(t *testing.T) {
 	doTokenEndpointRequestWithBodyAndScope("client_credentials", validClientId, validClientSecret, "badscope").
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		if response.HttpStatus != 400 {
 			return fmt.Errorf("Expected 400, but got %d", response.HttpStatus)
 		}

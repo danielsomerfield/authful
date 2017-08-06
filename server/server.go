@@ -90,7 +90,7 @@ func init() {
 		tokenStore.StoreToken,
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/authorize", authorization.AuthorizeHandler)
+	http.HandleFunc("/authorize", authorization.NewAuthorizationHandler())
 	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", client.NewRegisterClientHandler(

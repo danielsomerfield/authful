@@ -47,8 +47,8 @@ func TestRegisterUserHandler_registers_valid_user(t *testing.T) {
 		AuthMethods: []string{"username-password"},
 	}
 
-	handlers.DoEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		util.AssertTrue(response.HttpStatus == 201, "Http status is 201", t)
 		util.AssertTrue(len(registeredUsers) == 1, "There is 1 registered user", t)
 		util.AssertEquals(expectedUser, registeredUsers["user1"], t)
@@ -83,8 +83,8 @@ func runMalformedMessageTest(command map[string]interface{}, expectedCode int, e
 	}
 	body, _ := json.Marshal(registerRequest)
 
-	handlers.DoEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
 		errorResponse := response.Json
 		errorJson, converted := errorResponse["error"].(map[string]interface{})
@@ -113,8 +113,8 @@ func TestRegisterUserHandler_access_control_fails(t *testing.T) {
 
 	body, _ := json.Marshal(registerRequest)
 
-	handlers.DoEndpointRequest(NewRegisterUserHandler(mockFailingClientAccessControlFn, mockRegisterUserFn), string(body)).
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockFailingClientAccessControlFn, mockRegisterUserFn), string(body)).
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
 		errorResponse := response.Json
 		errorJson, converted := errorResponse["error"].(map[string]interface{})
@@ -147,8 +147,8 @@ func TestRegisterUserHandler_registration_fails(t *testing.T) {
 		return errors.New("Failed for some reason")
 	}
 
-	handlers.DoEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockFailingRegisterUserFn), string(body)).
-		ThenAssert(func(response *handlers.EndpointResponse) error {
+	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockFailingRegisterUserFn), string(body)).
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
 		errorResponse := response.Json
 		errorJson, converted := errorResponse["error"].(map[string]interface{})
