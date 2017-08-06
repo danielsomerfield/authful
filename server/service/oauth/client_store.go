@@ -23,7 +23,7 @@ type Credentials struct {
 }
 
 type ClientLookupFn func(clientId string) (Client, error)
-type RegisterClientFn func(name string, scopes []string) (*Credentials, error)
+type RegisterClientFn func(name string, scopes []string, urls [] string) (*Credentials, error)
 
 type inMemoryClientStore struct {
 	clients map[string]DefaultClient
@@ -39,7 +39,7 @@ func (store inMemoryClientStore) LookupClient(clientId string) (Client, error) {
 	return store.clients[clientId], nil
 }
 
-func (store inMemoryClientStore) RegisterClient(name string, scopes []string) (*Credentials, error) {
+func (store inMemoryClientStore) RegisterClient(name string, scopes []string, redirectUris []string) (*Credentials, error) {
 	clientId := util.GenerateRandomString(30)
 	secret := util.GenerateRandomString(60) //TODO: replace with hash storage
 	store.clients[clientId] = DefaultClient{
@@ -47,6 +47,7 @@ func (store inMemoryClientStore) RegisterClient(name string, scopes []string) (*
 		clientId: clientId,
 		secret:   secret,
 		scopes:   scopes,
+		redirectUris: redirectUris,
 	}
 	return &Credentials{
 		ClientId:     clientId,
@@ -59,6 +60,7 @@ type DefaultClient struct {
 	clientId string
 	secret   string //TODO: replace this with a hash
 	scopes   []string
+	redirectUris [] string
 }
 
 func (client DefaultClient) GetScopes() []string {

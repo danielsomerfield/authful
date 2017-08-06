@@ -16,6 +16,13 @@ type JSONEndpointResponse struct {
 	Json       map[string]interface{}
 	HttpStatus int
 	Err        error
+	t		   *testing.T
+}
+
+//TODO: refactor the harness for JSON and non JSON cases
+
+func (r *JSONEndpointResponse) AssertHttpStatusEquals(httpStatus int) {
+	util.AssertEquals(r.HttpStatus, httpStatus, r.t)
 }
 
 func DoPostEndpointRequest(underTest http.HandlerFunc, body string) *JSONEndpointResponse {
@@ -102,6 +109,7 @@ func (r *EndpointResponse) ThenAssert(test func(response *EndpointResponse) erro
 }
 
 func (rs *JSONEndpointResponse) ThenAssert(test func(response *JSONEndpointResponse) error, t *testing.T) error {
+	rs.t = t
 	if rs.Err != nil {
 		t.Errorf("Request failed: %+v", rs.Err)
 		return rs.Err

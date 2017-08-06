@@ -35,7 +35,7 @@ func NewRegisterClientHandler(
 			handlers.InvalidRequest("Failed to parse request to register client", w)
 			return
 		} else {
-			credentials, err := registerClientFn(registerClientRequest.Name, registerClientRequest.Scopes)
+			credentials, err := registerClientFn(registerClientRequest.Name, registerClientRequest.Scopes, registerClientRequest.RedirectUris)
 			if err == nil {
 				bytes, err := json.Marshal(wire.ResponseEnvelope{
 					Data: RegisterClientResponse{
@@ -55,7 +55,6 @@ func NewRegisterClientHandler(
 
 //TODO: refactor this bit to the wire package
 func ParseRegisterClientRequest(request *http.Request) (*RegisterClientCommand, error) {
-	//TODO: check that all required fields are accounted for
 	body, err := ioutil.ReadAll(request.Body)
 	var registerClientRequest *RegisterClientRequest = nil
 	if err == nil {
@@ -75,8 +74,9 @@ type RegisterClientRequest struct {
 }
 
 type RegisterClientCommand struct {
-	Name   string    `json:"name,omitempty"`
-	Scopes []string `json:"scopes,omitempty"`
+	Name         string    `json:"name,omitempty"`
+	Scopes       []string `json:"scopes,omitempty"`
+	RedirectUris []string `json:"redirect_uris,omitempty"`
 }
 
 type RegisterClientResponse struct {

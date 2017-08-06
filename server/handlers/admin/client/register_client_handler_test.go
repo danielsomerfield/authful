@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"reflect"
+	"github.com/danielsomerfield/authful/util"
 )
 
 var mockSucceedingClientAccessControlFn = func(request http.Request) (bool, error) {
@@ -22,11 +23,12 @@ type registeredClient struct {
 	clientSecret string
 	name         string
 	scopes       []string
+	redirectUris  []string
 }
 
 var registeredClients = map[string]registeredClient{}
 
-var mockRegisterClientFn = func(name string, scopes []string) (*oauth.Credentials, error) {
+var mockRegisterClientFn = func(name string, scopes []string, redirectUris []string) (*oauth.Credentials, error) {
 	clientId := name + "-id"
 	clientSecret := name + "-secret"
 	registeredClients[clientId] = registeredClient{
@@ -34,6 +36,7 @@ var mockRegisterClientFn = func(name string, scopes []string) (*oauth.Credential
 		clientSecret: clientSecret,
 		name:         name,
 		scopes:       scopes,
+		redirectUris: redirectUris,
 	}
 	return &oauth.Credentials{
 		ClientId:     clientId,
@@ -50,8 +53,9 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 	setup()
 	registerClientRequest := map[string]interface{}{
 		"command": map[string]interface{}{
-			"name":   "test-client",
-			"scopes": []string{"scope-1", "scope-2"},
+			"name":          "test-client",
+			"scopes":        []string{"scope-1", "scope-2"},
+			"redirect_uris": []string{"http://example.com/loggedIn"},
 		},
 	}
 
@@ -80,9 +84,10 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 		clientSecret: createdClientSecret,
 		name:         "test-client",
 		scopes:       []string{"scope-1", "scope-2"},
+		redirectUris:  []string{"http://example.com/loggedIn"},
 	}
 
-	if len(registeredClients) != 1 || reflect.DeepEqual(registeredClients["test-client"], expectedClient) {
+	if len(registeredClients) != 1 || !reflect.DeepEqual(registeredClients[createdClientId], expectedClient) {
 		t.Fatalf("Expected client %+v to exist in %+v\n", expectedClient, registeredClients)
 	}
 }
@@ -92,36 +97,33 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 	setup()
 	registerClientRequest := map[string]interface{}{
 		"command": map[string]interface{}{
-			"name":   "test-client",
-			"scopes": []string{"scope-1", "scope-2"},
+			"name":          "test-client",
+			"scopes":        []string{"scope-1", "scope-2"},
+			"redirect_uris": []string{"http://example.com/loggedIn"},
 		},
 	}
 
 	body, _ := json.Marshal(registerClientRequest)
-	response := handlers.DoPostEndpointRequest(
-		NewRegisterClientHandler(mockFailingClientAccessControlFn, mockRegisterClientFn), string(body))
+	handlers.DoPostEndpointRequest(
+		NewRegisterClientHandler(mockFailingClientAccessControlFn, mockRegisterClientFn), string(body)).
+		ThenAssert(func(r *handlers.JSONEndpointResponse) error {
 
-	if response.HttpStatus != 401 {
-		t.Fatalf("Expected 401 but got %d\n", response.HttpStatus)
-	}
+		r.AssertHttpStatusEquals(401)
 
-	theError, converted := response.Json["error"].(map[string]interface{})
+		theError, converted := r.Json["error"].(map[string]interface{})
+		util.AssertTrue(converted, "Failed to convert to expected type.", t)
 
-	if !converted {
-		t.Fatalf("Failed to convert to expected type.")
-	}
+		if theError["status"] != 401 && theError["errorType"] != "invalid_client" {
+			t.Fatalf("Unexpected error: %+v\n", theError)
+		}
 
-	if !converted {
-		t.Fatalf("Failed to convert to expected type.")
-	}
+		if len(registeredClients) != 0 {
+			t.Fatalf("Expected no clients to be registered: %+v\n", registeredClients)
+		}
 
-	if theError["status"] != 401 && theError["errorType"] != "invalid_client" {
-		t.Fatalf("Unexpected error: %+v\n", theError)
-	}
+		return nil
+	}, t)
 
-	if len(registeredClients) != 0 {
-		t.Fatalf("Expected no clients to be registered: %+v\n", registeredClients)
-	}
 }
 
 func TestRegisterClientHandler_registerReturnsErrorWithNoProvidedName(t *testing.T) {
@@ -129,21 +131,24 @@ func TestRegisterClientHandler_registerReturnsErrorWithNoProvidedName(t *testing
 	setup()
 	registerClientRequest := map[string]interface{}{
 		"command": map[string]interface{}{
-			"scopes": []string{"scope-1", "scope-2"},
+			"scopes":        []string{"scope-1", "scope-2"},
+			"redirect_uris": []string{"http://example.com/loggedIn"},
 		},
 	}
 
 	body, _ := json.Marshal(registerClientRequest)
-	response := handlers.DoPostEndpointRequest(
-		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body))
+	handlers.DoPostEndpointRequest(
+		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body)).
+		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
-	if response.HttpStatus != 400 {
-		t.Fatalf("Expected 400 but got %d\n", response.HttpStatus)
-	}
+		response.AssertHttpStatusEquals(400)
 
-	if len(registeredClients) != 0 {
-		t.Fatalf("Expected no clients to be registered: %+v\n", registeredClients)
-	}
+		if len(registeredClients) != 0 {
+			t.Fatalf("Expected no clients to be registered: %+v\n", registeredClients)
+		}
+		return nil
+	}, t)
+
 }
 
 //Test that registering the same client twice fails
