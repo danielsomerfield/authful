@@ -6,6 +6,7 @@ import (
 	oauth_handlers "github.com/danielsomerfield/authful/server/handlers/oauth"
 
 	oauth2 "github.com/danielsomerfield/authful/server/service/oauth"
+	"log"
 )
 
 func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
@@ -13,13 +14,14 @@ func AuthorizeHandler(w http.ResponseWriter, req *http.Request) {
 
 	authorizationRequest, err := oauth.ParseAuthorizeRequest(*req)
 	if err != nil {
+		log.Printf("Invalid authorization request due to error: %+v", err)
 		oauth_handlers.InvalidRequest(err.Error(), w)
 		return
 	} else {
 		client := getClient(authorizationRequest.ClientId)
 		if client == nil {
 			//TODO: write back 401 and {"error": "invalid_client"}
-			return;
+			return
 		}
 	}
 

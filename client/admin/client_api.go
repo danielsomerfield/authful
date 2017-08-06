@@ -14,21 +14,23 @@ import (
 )
 
 type ClientRegistration struct {
-	ClientId     string
-	ClientSecret string
+	Data struct {
+		ClientId     string  `json:"clientId,omitempty"`
+		ClientSecret string  `json:"clientSecret,omitempty"`
+	} `json:"data,omitempty"`
 }
 
 type ClientError struct {
-	errorType    string
-	errorMessage string
+	Type    string  `json:"errorType,omitempty"`
+	Message string  `json:"errorMessage,omitempty"`
 }
 
 func (ce ClientError) Error() string {
-	return fmt.Sprintf("%s : %s", ce.errorType, ce.errorMessage)
+	return fmt.Sprintf("%s : %s", ce.Type, ce.Message)
 }
 
 func (ce ClientError) ErrorType() string {
-	return ce.errorType
+	return ce.Type
 }
 
 type APIClient struct {
@@ -105,7 +107,7 @@ func (apiClient *APIClient) RegisterClient(clientName string) (*ClientRegistrati
 	}
 }
 
-type UserRegistration struct {}
+type UserRegistration struct{}
 
 func (apiClient *APIClient) RegisterUser(username string, password string, authMethods []string) (*UserRegistration, error) {
 	credentials := base64.StdEncoding.EncodeToString([]byte(
@@ -113,9 +115,9 @@ func (apiClient *APIClient) RegisterUser(username string, password string, authM
 
 	createClientRequest := map[string]interface{}{
 		"command": map[string]interface{}{
-			"username": username,
-			"password": password,
-			"authMethods" : authMethods,
+			"username":    username,
+			"password":    password,
+			"authMethods": authMethods,
 		},
 	}
 	messageBytes, _ := json.Marshal(createClientRequest)

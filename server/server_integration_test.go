@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"golang.org/x/oauth2"
 	"github.com/danielsomerfield/authful/client/admin"
+	"net/url"
 )
 
 var creds *oauth_service.Credentials = nil
@@ -41,10 +42,20 @@ func TestAuthorize(t *testing.T) {
 	_, err = apiClient.RegisterUser("username-1", "password-1", []string{"username-password"})
 	util.AssertNoError(err, t)
 
+	redirectURI := url.QueryEscape("https://localhost:8080/redirect_location")
+	scope := "scope1"
+	state := util.GenerateRandomString(5)
+
 	//Hit the authorization endpoint
-	//resp, err = http.Get("https://localhost:8081/authorize?request_type=code?client_id=1234")
-	//
-	////Ensure that the user is authentcated and prompted for approval
+	httpsClient := CreateHttpsClient()
+	authorizeUrl := fmt.Sprintf(
+		"https://localhost:8081/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s",
+		registration.Data.ClientId, redirectURI, scope, state)
+	_, err = httpsClient.Get(authorizeUrl)
+	util.AssertNoError(err, t)
+	//util.AssertStatusCode(resp, 302, t)
+
+	////Ensure that the user is authenticated and prompted for approval
 	//if err == nil {
 	//	if resp.StatusCode == 200 {
 	//		body, err = ioutil.ReadAll(resp.Body)
@@ -123,8 +134,8 @@ func TestScopeRequirements(t *testing.T) {
 	//TODO: validate the client was registered
 
 	apiClientInsufficientCreds, err := admin.NewAPIClient("https://localhost:8081",
-		registration.ClientId,
-		registration.ClientSecret,
+		registration.Data.ClientId,
+		registration.Data.ClientSecret,
 		[]string{"../resources/test/server.crt"},
 	)
 	util.AssertNoError(err, t)
