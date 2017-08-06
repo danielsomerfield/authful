@@ -10,24 +10,28 @@ import (
 	"bytes"
 	"strconv"
 	"math"
+	"fmt"
 )
 
 type BuildPwdHash func(string) []byte
 
 func ScryptHash(input string) string {
-	N := 16384
+	N := 16
 	r := 8
 	p := 1
 	salt := util.GenerateRandomBytes(16)
 	keyLen := 32
 
-	hash, err := scrypt.Key([]byte(input), salt, N, r, p, keyLen)
+	hash, err := scrypt.Key([]byte(input), salt, int(math.Pow(2, float64(N))), r, p, keyLen)
 
 	if err != nil {
 		log.Panic("Bad configuration of scrypt.")
 	}
 
-	return string(hash)
+	encodedSalt := base64.RawStdEncoding.EncodeToString([]byte(salt))
+	encodedHash := base64.RawStdEncoding.EncodeToString(hash)
+
+	return fmt.Sprintf("$scrypt$ln=%d,r=%d,p=%d$%s$%s", N, r, p, encodedSalt, encodedHash)
 }
 
 func ValidateScrypt(data string, hash string) bool {
@@ -49,10 +53,11 @@ func ValidateScrypt(data string, hash string) bool {
 	checksum := m[5]
 
 	saltBytes, err := base64.RawStdEncoding.DecodeString(salt)
+	if err != nil {return false}
 	checksumBytes, err := base64.RawStdEncoding.DecodeString(checksum)
-
+	if err != nil {return false}
 	key, err := scrypt.Key([]byte(data), saltBytes, int(math.Pow(2, float64(ln))), int(r), int(p), 32)
-
+	if err != nil {return false}
 	equal := bytes.Equal(checksumBytes, key)
 
 	return err == nil && equal

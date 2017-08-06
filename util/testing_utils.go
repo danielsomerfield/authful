@@ -24,7 +24,7 @@ func AssertNotNil(pointer interface{}, t *testing.T) {
 
 func AssertTrue(boolean bool, message string, t *testing.T) {
 	if !boolean {
-		t.Errorf("Expected \"%s\" to be true but was false", message)
+		t.Errorf("Expected \"%s to be true but was false", message)
 		PrintStackTrace()
 	}
 }
