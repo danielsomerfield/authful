@@ -2,7 +2,7 @@ package user
 
 type UserRecord struct {
 	Username       string
-	HashedPassword []byte
+	HashedPassword string
 	AuthMethods    []string
 }
 

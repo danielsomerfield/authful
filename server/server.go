@@ -15,6 +15,7 @@ import (
 	adminuser "github.com/danielsomerfield/authful/server/handlers/admin/user"
 	usersvc "github.com/danielsomerfield/authful/server/service/admin/user"
 	user2 "github.com/danielsomerfield/authful/server/repository/user"
+	"github.com/danielsomerfield/authful/server/service/crypto"
 )
 
 type AuthServer struct {
@@ -95,12 +96,8 @@ func init() {
 	http.HandleFunc("/admin/clients", client.NewRegisterClientHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
 
-	hashFunc := func(input string) []byte {
-		return []byte{}
-	}
-
 	http.HandleFunc("/admin/users", adminuser.NewRegisterUserHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"),
-		usersvc.NewRegisterUserFn(userRepository.SaveUser, hashFunc)))
+		usersvc.NewRegisterUserFn(userRepository.SaveUser, crypto.ScryptHash)))
 
 }

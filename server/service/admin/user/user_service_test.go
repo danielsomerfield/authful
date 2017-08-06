@@ -16,8 +16,14 @@ func mockSaveFn(userRecord userrepo.UserRecord) error {
 	return nil
 }
 
-func mockHashFn(pwd string)[]byte {
-	return []byte(pwd)
+func mockHashFn(pwd string) string {
+	reversed := make([]rune, len(pwd))
+	strsize := len(pwd)
+	for i, r := range pwd {
+		reversed[strsize- (i + 1)] = r
+	}
+
+	return string(reversed)
 }
 
 func setup() {
@@ -28,7 +34,7 @@ func TestRegisterUserFunction_RegistersValidUser(t *testing.T) {
 
 	setup()
 	user := User{
-		Username: "username1",
+		Username:    "username1",
 		Password:    "password1",
 		AuthMethods: []string{"username-password"},
 	}
@@ -37,9 +43,9 @@ func TestRegisterUserFunction_RegistersValidUser(t *testing.T) {
 	registerFn(user)
 
 	expected := userrepo.UserRecord{
-		Username: "username1",
-		HashedPassword: []byte("password1"),
-		AuthMethods: []string{"username-password"},
+		Username:       "username1",
+		HashedPassword: "1drowssap",
+		AuthMethods:    []string{"username-password"},
 	}
 
 	util.AssertTrue(len(userRecords) == 1, "A use record was entered", t)

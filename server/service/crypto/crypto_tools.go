@@ -13,7 +13,7 @@ import (
 	"fmt"
 )
 
-type BuildPwdHash func(string) []byte
+type BuildPwdHash func(string) string
 
 func ScryptHash(input string) string {
 	N := 16
