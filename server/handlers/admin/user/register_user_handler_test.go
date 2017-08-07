@@ -6,9 +6,9 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers"
 	"github.com/danielsomerfield/authful/util"
 	"fmt"
-	"net/http"
 	"github.com/danielsomerfield/authful/server/service/admin/user"
 	"errors"
+	"github.com/danielsomerfield/authful/server/service/oauth"
 )
 
 var registeredUsers = map[string]user.User{}
@@ -16,14 +16,6 @@ var registeredUsers = map[string]user.User{}
 var mockRegisterUserFn = func(user user.User) error {
 	registeredUsers[user.Username] = user
 	return nil
-}
-
-var mockSucceedingClientAccessControlFn = func(request http.Request) (bool, error) {
-	return true, nil
-}
-
-var mockFailingClientAccessControlFn = func(request http.Request) (bool, error) {
-	return false, nil
 }
 
 func setup() {
@@ -47,7 +39,7 @@ func TestRegisterUserHandler_registers_valid_user(t *testing.T) {
 		AuthMethods: []string{"username-password"},
 	}
 
-	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
+	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockRegisterUserFn), string(body)).
 		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 		util.AssertTrue(response.HttpStatus == 201, "Http status is 201", t)
 		util.AssertTrue(len(registeredUsers) == 1, "There is 1 registered user", t)
@@ -83,7 +75,7 @@ func runMalformedMessageTest(command map[string]interface{}, expectedCode int, e
 	}
 	body, _ := json.Marshal(registerRequest)
 
-	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockRegisterUserFn), string(body)).
+	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockRegisterUserFn), string(body)).
 		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
 		errorResponse := response.Json
@@ -113,7 +105,11 @@ func TestRegisterUserHandler_access_control_fails(t *testing.T) {
 
 	body, _ := json.Marshal(registerRequest)
 
-	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockFailingClientAccessControlFn, mockRegisterUserFn), string(body)).
+	lookup := func(clientId string) (oauth.Client, error) {
+		return nil, nil
+	}
+
+	handlers.DoPostEndpointRequest(NewProtectedHandler(mockRegisterUserFn, lookup), string(body)).
 		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
 		errorResponse := response.Json
@@ -147,7 +143,7 @@ func TestRegisterUserHandler_registration_fails(t *testing.T) {
 		return errors.New("Failed for some reason")
 	}
 
-	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockSucceedingClientAccessControlFn, mockFailingRegisterUserFn), string(body)).
+	handlers.DoPostEndpointRequest(NewRegisterUserHandler(mockFailingRegisterUserFn), string(body)).
 		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
 		errorResponse := response.Json

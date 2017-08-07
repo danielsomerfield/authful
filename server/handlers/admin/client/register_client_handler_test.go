@@ -4,26 +4,17 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers"
 	"encoding/json"
 	"testing"
-	"net/http"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"reflect"
 	"github.com/danielsomerfield/authful/util"
 )
-
-var mockSucceedingClientAccessControlFn = func(request http.Request) (bool, error) {
-	return true, nil
-}
-
-var mockFailingClientAccessControlFn = func(request http.Request) (bool, error) {
-	return false, nil
-}
 
 type registeredClient struct {
 	clientId     string
 	clientSecret string
 	name         string
 	scopes       []string
-	redirectUris  []string
+	redirectUris []string
 }
 
 var registeredClients = map[string]registeredClient{}
@@ -61,7 +52,7 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 
 	body, _ := json.Marshal(registerClientRequest)
 	response := handlers.DoPostEndpointRequest(
-		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body))
+		NewRegisterClientHandler(mockRegisterClientFn), string(body))
 
 	if response.HttpStatus != 200 {
 		t.Fatalf("Expected 200 but got %d\n", response.HttpStatus)
@@ -84,7 +75,7 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 		clientSecret: createdClientSecret,
 		name:         "test-client",
 		scopes:       []string{"scope-1", "scope-2"},
-		redirectUris:  []string{"http://example.com/loggedIn"},
+		redirectUris: []string{"http://example.com/loggedIn"},
 	}
 
 	if len(registeredClients) != 1 || !reflect.DeepEqual(registeredClients[createdClientId], expectedClient) {
@@ -93,6 +84,10 @@ func TestRegisterClientHandler_registersClientWithValidCredentials(t *testing.T)
 }
 
 func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *testing.T) {
+
+	lookup := func(clientId string) (oauth.Client, error) {
+		return nil, nil
+	}
 
 	setup()
 	registerClientRequest := map[string]interface{}{
@@ -105,7 +100,7 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 
 	body, _ := json.Marshal(registerClientRequest)
 	handlers.DoPostEndpointRequest(
-		NewRegisterClientHandler(mockFailingClientAccessControlFn, mockRegisterClientFn), string(body)).
+		NewProtectedHandler(mockRegisterClientFn, lookup), string(body)).
 		ThenAssert(func(r *handlers.JSONEndpointResponse) error {
 
 		r.AssertHttpStatusEquals(401)
@@ -115,10 +110,12 @@ func TestRegisterClientHandler_registerReturnsErrorWithFailingAuthorization(t *t
 
 		if theError["status"] != 401 && theError["errorType"] != "invalid_client" {
 			t.Fatalf("Unexpected error: %+v\n", theError)
+			return nil
 		}
 
 		if len(registeredClients) != 0 {
 			t.Fatalf("Expected no clients to be registered: %+v\n", registeredClients)
+			return nil
 		}
 
 		return nil
@@ -138,7 +135,7 @@ func TestRegisterClientHandler_registerReturnsErrorWithNoProvidedName(t *testing
 
 	body, _ := json.Marshal(registerClientRequest)
 	handlers.DoPostEndpointRequest(
-		NewRegisterClientHandler(mockSucceedingClientAccessControlFn, mockRegisterClientFn), string(body)).
+		NewRegisterClientHandler(mockRegisterClientFn), string(body)).
 		ThenAssert(func(response *handlers.JSONEndpointResponse) error {
 
 		response.AssertHttpStatusEquals(400)

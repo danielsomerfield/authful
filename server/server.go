@@ -93,11 +93,9 @@ func init() {
 	http.HandleFunc("/authorize", authorization.NewAuthorizationHandler())
 	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
-	http.HandleFunc("/admin/clients", client.NewRegisterClientHandler(
-		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"), clientStore.RegisterClient))
-
-	http.HandleFunc("/admin/users", adminuser.NewRegisterUserHandler(
-		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "administrate"),
-		usersvc.NewRegisterUserFn(userRepository.SaveUser, crypto.ScryptHash)))
+	http.HandleFunc("/admin/clients", client.NewProtectedHandler(
+		clientStore.RegisterClient, clientStore.LookupClient))
+	http.HandleFunc("/admin/users", adminuser.NewProtectedHandler(
+		usersvc.NewRegisterUserFn(userRepository.SaveUser, crypto.ScryptHash), clientStore.LookupClient))
 
 }

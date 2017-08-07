@@ -19,13 +19,15 @@ func AssertNotNil(pointer interface{}, t *testing.T) {
 	if pointer == nil {
 		t.Errorf("Received an unexpected nil pointer")
 		PrintStackTrace()
+		t.FailNow()
 	}
 }
 
 func AssertTrue(boolean bool, message string, t *testing.T) {
 	if !boolean {
-		t.Errorf("Expected \"%s to be true but was false", message)
+		t.Errorf("Expected \"%s\" to be true but was false", message)
 		PrintStackTrace()
+		t.FailNow()
 	}
 }
 
@@ -33,6 +35,7 @@ func AssertFalse(boolean bool, message string, t *testing.T) {
 	if boolean {
 		t.Errorf("Expected \"%s\" to be false but was true", message)
 		PrintStackTrace()
+		t.FailNow()
 	}
 }
 
@@ -40,6 +43,7 @@ func AssertEquals(expectedValue interface{}, actualValue interface{}, t *testing
 	if !reflect.DeepEqual(expectedValue, actualValue) {
 		t.Errorf("Expected value +%v but was +%v", expectedValue, actualValue)
 		PrintStackTrace()
+		t.FailNow()
 	}
 }
 
@@ -47,6 +51,7 @@ func AssertStatusCode(r *http.Response, expected int, t *testing.T) {
 	if r.StatusCode != expected {
 		t.Errorf("Expected HTTP status %d but received %d", expected, r.StatusCode)
 		PrintStackTrace()
+		t.FailNow()
 	}
 }
 

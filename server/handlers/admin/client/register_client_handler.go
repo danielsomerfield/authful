@@ -2,7 +2,6 @@ package client
 
 import (
 	"net/http"
-	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"encoding/json"
 	"github.com/danielsomerfield/authful/server/wire"
@@ -13,21 +12,13 @@ import (
 	"fmt"
 )
 
+func NewProtectedHandler(registerClientFn oauth.RegisterClientFn, lookup oauth.ClientLookupFn) http.HandlerFunc {
+	return handlers.Protect(NewRegisterClientHandler(registerClientFn), "administrate", lookup)
+}
+
 func NewRegisterClientHandler(
-	clientAccessControlFn accesscontrol.ClientAccessControlFn,
 	registerClientFn oauth.RegisterClientFn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		authorized, err := clientAccessControlFn(*r)
-
-		if !authorized {
-			if err != nil {
-				handlers.InternalServerError("An unexpected error occurred", w)
-			} else {
-				handlers.Unauthorized("The requested operation was denied.", w)
-			}
-			return
-		}
 
 		registerClientRequest, err := ParseRegisterClientRequest(r)
 

@@ -4,27 +4,19 @@ import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/handlers"
 	wireUser "github.com/danielsomerfield/authful/server/wire/admin/user"
-	"github.com/danielsomerfield/authful/server/service/accesscontrol"
 	"github.com/danielsomerfield/authful/server/service/admin/user"
 	"log"
 	"encoding/json"
 	"github.com/danielsomerfield/authful/server/wire"
+	"github.com/danielsomerfield/authful/server/service/oauth"
 )
 
+func NewProtectedHandler(registerUserFn user.RegisterUserFn, lookup oauth.ClientLookupFn) http.HandlerFunc {
+	return handlers.Protect(NewRegisterUserHandler(registerUserFn), "administrate", lookup)
+}
 
-func NewRegisterUserHandler(accessControlFn accesscontrol.ClientAccessControlFn, registerUserFn user.RegisterUserFn) http.HandlerFunc {
+func NewRegisterUserHandler(registerUserFn user.RegisterUserFn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		authorized, err := accessControlFn(*r)
-
-		if !authorized {
-			if err != nil {
-				handlers.InternalServerError("An unexpected error occurred", w)
-			} else {
-				handlers.Unauthorized("The requested operation was denied.", w)
-			}
-			return
-		}
 
 		registerUserRequest, err := wireUser.ParseRegisterUserRequest(r)
 		if err != nil {
@@ -55,5 +47,4 @@ func NewRegisterUserHandler(accessControlFn accesscontrol.ClientAccessControlFn,
 
 //TODO: fill out the data here
 type RegisterUserResponse struct {
-
 }
