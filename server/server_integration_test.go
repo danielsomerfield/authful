@@ -27,6 +27,21 @@ var creds *oauth_service.Credentials = nil
 
 const TEST_CERTIFICATE = "../resources/test/server.crt"
 
+var resourceServer = http.Server{Addr: ":8181"}
+
+func StartResourceServer(pattern string, handler http.HandlerFunc) {
+	go func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc(pattern, handler)
+		resourceServer.Handler = mux
+		err := resourceServer.ListenAndServeTLS("../resources/test/server.crt", "../resources/test/server.key")
+
+		if err != nil {
+			log.Fatalf("Failed to start resource server because of error %+v", err)
+		}
+	}()
+}
+
 func TestAuthorize(t *testing.T) {
 
 	_, err := requestAdminToken(*creds)
@@ -72,23 +87,14 @@ func TestAuthorize(t *testing.T) {
 
 func TestClientCredentialsEnd2End(t *testing.T) {
 
-	go func() {
-		httpServer := http.Server{Addr: ":8181"}
-		http.HandleFunc("/test", func(w http.ResponseWriter, request *http.Request) {
-			bearerHeader := request.Header.Get("Authorization")
-			bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
-			if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
-				log.Printf("Bad token: size = %d value = %+v\n", len(bearerTokenArray)-1, bearerTokenArray)
-				http.Error(w, "Unauthorized", 401)
-			}
-
-		})
-		err := httpServer.ListenAndServeTLS("../resources/test/server.crt", "../resources/test/server.key")
-
-		if err != nil {
-			t.Fatalf("Failed to start resource server because of error %+v", err)
+	go StartResourceServer("/test", func(w http.ResponseWriter, request *http.Request) {
+		bearerHeader := request.Header.Get("Authorization")
+		bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
+		if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
+			log.Printf("Bad token: size = %d value = %+v\n", len(bearerTokenArray)-1, bearerTokenArray)
+			http.Error(w, "Unauthorized", 401)
 		}
-	}()
+	})
 
 	config := clientcredentials.Config{
 		ClientID:     creds.ClientId,
@@ -297,6 +303,7 @@ func TestMain(m *testing.M) {
 	}
 	result := m.Run()
 	err = authServer.Stop()
+	resourceServer.Shutdown(nil)
 
 	if err != nil {
 		log.Fatalf("Unexpected error on stop: %+v", err)
