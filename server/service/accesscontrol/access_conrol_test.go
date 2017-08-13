@@ -3,8 +3,8 @@ package accesscontrol
 import (
 	"net/http"
 	"testing"
-	"github.com/danielsomerfield/authful/server/service/oauth"
 	"encoding/base64"
+	"github.com/danielsomerfield/authful/server/service/oauth"
 )
 
 var validClientId = "valid-client-id"
@@ -12,7 +12,6 @@ var validClientSecret = "valid-client-secret"
 var invalidClientSecret = "invalid-client-secret"
 
 type MockClient struct {
-
 }
 
 func (MockClient) CheckSecret(secret string) bool {
@@ -33,7 +32,9 @@ func MockClientLookupFn(clientId string) (oauth.Client, error) {
 	}
 }
 
-var clientAccessControlFn = NewClientAccessControlFn(MockClientLookupFn)
+var mockClientLookup = MockClientLookupFn
+
+var clientAccessControlFn = NewClientAccessControlFn(mockClientLookup)
 
 func TestIntrospect_FailsWithoutCredentials(t *testing.T) {
 	request := http.Request{

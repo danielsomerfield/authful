@@ -10,17 +10,36 @@ import (
 	oauth_service "github.com/danielsomerfield/authful/server/service/oauth"
 	"crypto/x509"
 	"crypto/tls"
+	"regexp"
+	"strings"
 )
 
 const RESOURCE_SERVER_PORT = ":8181"
 const TEST_CERTIFICATE = "../resources/test/server.crt"
 
 var resourceServer = http.Server{Addr: RESOURCE_SERVER_PORT}
+var creds *oauth_service.Credentials = nil
 
-func StartResourceServer(pattern string, handler http.HandlerFunc) {
+func StartResourceServer() {
 	go func() {
 		mux := http.NewServeMux()
-		mux.HandleFunc(pattern, handler)
+		mux.HandleFunc("/test", func(w http.ResponseWriter, request *http.Request) {
+			bearerHeader := request.Header.Get("Authorization")
+			bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
+			if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
+				log.Printf("Bad token: size = %d value = %+v\n", len(bearerTokenArray)-1, bearerTokenArray)
+				http.Error(w, "Unauthorized", 401)
+			}
+		})
+
+		mux.HandleFunc("/ping", func(w http.ResponseWriter, request *http.Request) {
+
+		})
+
+		mux.HandleFunc("/error", func(w http.ResponseWriter, request *http.Request) {
+			fmt.Printf("=============++> /error")
+		})
+
 		resourceServer.Handler = mux
 		err := resourceServer.ListenAndServeTLS("../resources/test/server.crt", "../resources/test/server.key")
 
@@ -28,6 +47,10 @@ func StartResourceServer(pattern string, handler http.HandlerFunc) {
 			log.Fatalf("Failed to start resource server because of error %+v", err)
 		}
 	}()
+}
+
+func StopResourceServer() {
+	resourceServer.Shutdown(nil)
 }
 
 func WaitForServer(server *AuthServer) error {
@@ -88,4 +111,32 @@ func CreateHttpsClient() *http.Client {
 				RootCAs: caCertPool,
 			},
 		}}
+}
+
+func validateToken(token string) bool {
+	post, _ := http.NewRequest("POST", "https://localhost:8081/introspect",
+		strings.NewReader(fmt.Sprintf("token=%s", token)))
+	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	post.Header.Set("Authorization", "Basic "+creds.String())
+
+	response, err := CreateHttpsClient().Do(post)
+
+	if err != nil {
+		log.Printf("Failed to execute introspection request: %+v\n", err)
+		return false
+	} else if response.StatusCode != 200 {
+		log.Printf("Request to introspection endpoint failed with status code %d\n", response.StatusCode)
+		return false
+	} else {
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("Failed to read http body: %+v\n", err)
+			return false
+		}
+		responseJSON := map[string]interface{}{}
+		err = json.Unmarshal(body, &responseJSON)
+		validated := responseJSON["active"]
+		log.Printf("Validated: %b", validated)
+		return validated == true
+	}
 }

@@ -69,12 +69,12 @@ func DoPostEndpointRequestWithHeaders(underTest http.HandlerFunc, body string, h
 
 func DoGetEndpointRequest(underTest http.HandlerFunc, urlstring string) *EndpointResponse {
 
-	post, _ := http.NewRequest("Get", urlstring, nil)
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request, _ := http.NewRequest("Get", urlstring, nil)
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	response := httptest.NewRecorder()
 	handler := http.HandlerFunc(underTest)
-	handler.ServeHTTP(response, post)
+	handler.ServeHTTP(response, request)
 
 	return &EndpointResponse{
 		httpStatus: response.Code,

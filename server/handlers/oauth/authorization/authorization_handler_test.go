@@ -5,31 +5,52 @@ import (
 	"github.com/danielsomerfield/authful/server/handlers"
 	"fmt"
 	"net/url"
+	"github.com/danielsomerfield/authful/server/service/oauth"
 )
 
-var validClientId = "12345"
+var validClientId = "valid-client-id"
+var validClientSecret = "valid-client-secret"
+var invalidClientSecret = "invalid-client-secret"
 
-func mockClientLookup(clientId string)  {
+type MockClient struct {
 
 }
 
+func (MockClient) CheckSecret(secret string) bool {
+	return secret == validClientSecret
+}
+
+func (mc MockClient) GetScopes() []string {
+	return []string{}
+}
+
+func MockClientLookupFn(clientId string) (oauth.Client, error) {
+	if clientId == validClientId {
+		return MockClient{
+
+		}, nil
+	} else {
+		return nil, nil
+	}
+}
+
 func TestAuthorizeHandler_successfulAuthorization(t *testing.T) {
-	clientId := "12345"
 	responseType := "code"
 	state := "state1"
 	redirectUri := "https://example.com?redirect"
 
 	requestUrl := fmt.Sprintf("/authorize?client_id=%s&response_type=%s&state=%s&redirect_uri=%s",
-		clientId, responseType, state, url.QueryEscape(redirectUri))
+		validClientId, responseType, state, url.QueryEscape(redirectUri))
 
-	handlers.DoGetEndpointRequest(NewAuthorizationHandler(), requestUrl).
+	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn), requestUrl).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
+		fmt.Printf("response: %+v", response)
 		response.AssertHttpStatusEquals(302)
 		return nil
 	}, t)
 }
 
-//TODO: invalid client id
+//TODO: invalid/non-existent client id
 //TODO: bad redirect url
 //TODO: test with no redirect url (redirects to default)
 //TODO: invalid scope for client

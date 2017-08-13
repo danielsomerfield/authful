@@ -13,14 +13,11 @@ import (
 	oauth_wire "github.com/danielsomerfield/authful/server/wire/oauth"
 	"os"
 	"log"
-	"regexp"
 	"github.com/danielsomerfield/authful/util"
 	"golang.org/x/oauth2"
 	"github.com/danielsomerfield/authful/client/admin"
 	"net/url"
 )
-
-var creds *oauth_service.Credentials = nil
 
 func TestAuthorize(t *testing.T) {
 
@@ -37,7 +34,7 @@ func TestAuthorize(t *testing.T) {
 	_, err = apiClient.RegisterUser("username-1", "password-1", []string{"username-password"})
 	util.AssertNoError(err, t)
 
-	redirectURI := url.QueryEscape("https://localhost:8080/redirect_location")
+	redirectURI := url.QueryEscape("https://localhost:8181/ping")
 	scope := "scope1"
 	state := util.GenerateRandomString(5)
 
@@ -46,9 +43,10 @@ func TestAuthorize(t *testing.T) {
 	authorizeUrl := fmt.Sprintf(
 		"https://localhost:8081/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s",
 		registration.Data.ClientId, redirectURI, scope, state)
-	_, err = httpsClient.Get(authorizeUrl)
+	resp, err := httpsClient.Get(authorizeUrl)
 	util.AssertNoError(err, t)
-	//util.AssertStatusCode(resp, 302, t)
+
+	util.AssertStatusCode(resp, 200, t)
 
 	////Ensure that the user is authenticated and prompted for approval
 	//if err == nil {
@@ -66,15 +64,6 @@ func TestAuthorize(t *testing.T) {
 }
 
 func TestClientCredentialsEnd2End(t *testing.T) {
-
-	go StartResourceServer("/test", func(w http.ResponseWriter, request *http.Request) {
-		bearerHeader := request.Header.Get("Authorization")
-		bearerTokenArray := regexp.MustCompile("Bearer ([a-zA-Z0-9]*)").FindStringSubmatch(string(bearerHeader))
-		if len(bearerTokenArray) != 2 || !validateToken(bearerTokenArray[1]) {
-			log.Printf("Bad token: size = %d value = %+v\n", len(bearerTokenArray)-1, bearerTokenArray)
-			http.Error(w, "Unauthorized", 401)
-		}
-	})
 
 	config := clientcredentials.Config{
 		ClientID:     creds.ClientId,
@@ -169,34 +158,6 @@ func createAPIClient(t *testing.T) (*admin.APIClient) {
 	return apiClient
 }
 
-func validateToken(token string) bool {
-	post, _ := http.NewRequest("POST", "https://localhost:8081/introspect",
-		strings.NewReader(fmt.Sprintf("token=%s", token)))
-	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	post.Header.Set("Authorization", "Basic "+creds.String())
-
-	response, err := CreateHttpsClient().Do(post)
-
-	if err != nil {
-		log.Printf("Failed to execute introspection request: %+v\n", err)
-		return false
-	} else if response.StatusCode != 200 {
-		log.Printf("Request to introspection endpoint failed with status code %d\n", response.StatusCode)
-		return false
-	} else {
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Printf("Failed to read http body: %+v\n", err)
-			return false
-		}
-		responseJSON := map[string]interface{}{}
-		err = json.Unmarshal(body, &responseJSON)
-		validated := responseJSON["active"]
-		log.Printf("Validated: %b", validated)
-		return validated == true
-	}
-}
-
 func requestAdminToken(credentials oauth_service.Credentials) (*oauth_wire.TokenResponse, error) {
 	var err error = nil
 
@@ -232,13 +193,15 @@ func TestMain(m *testing.M) {
 	var err error
 
 	authServer, creds, err = RunServer()
+	go StartResourceServer()
+
 	if err != nil {
 		log.Fatalf("Unexpected error on startup: %+v", err)
 		return
 	}
 	result := m.Run()
 	err = authServer.Stop()
-	resourceServer.Shutdown(nil)
+	StopResourceServer()
 
 	if err != nil {
 		log.Fatalf("Unexpected error on stop: %+v", err)

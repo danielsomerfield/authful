@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-func NewAuthorizationHandler() func(http.ResponseWriter, *http.Request) {
+func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
@@ -19,15 +19,13 @@ func NewAuthorizationHandler() func(http.ResponseWriter, *http.Request) {
 			oauth_handlers.InvalidRequest(err.Error(), w)
 			return
 		} else {
-			client := getClient(authorizationRequest.ClientId)
+			client, _ := clientLookup(authorizationRequest.ClientId)
 			if client == nil {
 				log.Printf("Request for unknown client %s.", authorizationRequest.ClientId)
-				errorUrl := ""
-				http.Redirect(w, r, errorUrl, http.StatusFound)
 				return
 			}
 		}
-
+		http.Redirect(w, r, authorizationRequest.RedirectURI, http.StatusFound)
 
 		//Reject if the redirect_uri doesn't match one configured with the client
 
@@ -38,6 +36,3 @@ func NewAuthorizationHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func getClient(clientId string) oauth2.Client {
-	return nil
-}
