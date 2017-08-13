@@ -7,16 +7,20 @@ import (
 
 	oauth2 "github.com/danielsomerfield/authful/server/service/oauth"
 	"log"
+	"fmt"
+	"net/url"
 )
 
-func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn) func(http.ResponseWriter, *http.Request) {
+type CodeGenerator func() string
+
+func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeGenerator) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
 		authorizationRequest, err := oauth.ParseAuthorizeRequest(*r)
 		if err != nil {
 			log.Printf("Invalid authorization request due to error: %+v", err)
-			oauth_handlers.InvalidRequest(err.Error(), w)
+			oauth_handlers.InvalidRequest(err.Error(), w) //TODO: make this a redirect to error endpoint
 			return
 		} else {
 			client, _ := clientLookup(authorizationRequest.ClientId)
@@ -25,7 +29,7 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn) func(http.Respo
 				return
 			}
 		}
-		http.Redirect(w, r, authorizationRequest.RedirectURI, http.StatusFound)
+		http.Redirect(w, r, appendParam(authorizationRequest.RedirectURI, "code", generator()), http.StatusFound)
 
 		//Reject if the redirect_uri doesn't match one configured with the client
 
@@ -36,3 +40,6 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn) func(http.Respo
 	}
 }
 
+func appendParam(uri string, paramName string, paramValue string) string {
+	return fmt.Sprintf("%s?%s=%s", uri, url.QueryEscape(paramName), url.QueryEscape(paramValue))
+}

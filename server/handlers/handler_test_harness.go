@@ -16,7 +16,7 @@ type JSONEndpointResponse struct {
 	Json       map[string]interface{}
 	HttpStatus int
 	Err        error
-	t		   *testing.T
+	t          *testing.T
 }
 
 //TODO: refactor the harness for JSON and non JSON cases
@@ -77,20 +77,42 @@ func DoGetEndpointRequest(underTest http.HandlerFunc, urlstring string) *Endpoin
 	handler.ServeHTTP(response, request)
 
 	return &EndpointResponse{
-		httpStatus: response.Code,
-		err:        nil,
+		response: response,
+		err:      nil,
 	}
 
 }
 
 type EndpointResponse struct {
-	httpStatus int
-	err        error
-	t          *testing.T
+	response *httptest.ResponseRecorder
+	err      error
+	t        *testing.T
+}
+
+func (er *EndpointResponse) GetHeader(name string) string {
+	return er.response.Header().Get(name)
+}
+
+func (er *EndpointResponse) AssertHeaderValue(name string, expected string, t *testing.T) {
+	actual := er.response.Header().Get(name)
+	util.AssertTrue(actual == expected,
+		fmt.Sprintf("Expected header \"%s\" to equal \"%s\" but was \"%s\"", name, expected, actual), t)
+
+}
+
+func (er *EndpointResponse) AssertHasHeader(name string, t *testing.T) {
+	actual := er.response.Header().Get(name)
+	util.AssertTrue(actual != "",
+		fmt.Sprintf("Expected header \"%s\" to have a value but it was blank", name), t)
+
+}
+
+func (r *EndpointResponse) StatusCode() int {
+	return r.response.Code
 }
 
 func (r *EndpointResponse) AssertHttpStatusEquals(httpStatus int) {
-	util.AssertTrue(r.httpStatus == httpStatus, fmt.Sprintf("Expected http status %d but found %s", httpStatus, r.httpStatus), r.t)
+	util.AssertTrue(r.StatusCode() == httpStatus, fmt.Sprintf("Expected http status %d but found %s", httpStatus, r.StatusCode()), r.t)
 }
 
 func (r *EndpointResponse) ThenAssert(test func(response *EndpointResponse) error, t *testing.T) error {

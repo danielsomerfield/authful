@@ -69,6 +69,10 @@ func defaultTokenGenerator() string {
 	return util.GenerateRandomString(25)
 }
 
+func defaultCodeGenerator() string {
+	return util.GenerateRandomString(6)
+}
+
 var tokenHandlerConfig = token.TokenHandlerConfig{
 	DefaultTokenExpiration: 3600,
 }
@@ -90,7 +94,7 @@ func init() {
 		tokenStore.StoreToken,
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/authorize", authorization.NewAuthorizationHandler(clientStore.LookupClient))
+	http.HandleFunc("/authorize", authorization.NewAuthorizationHandler(clientStore.LookupClient, defaultCodeGenerator))
 	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", client.NewProtectedHandler(
