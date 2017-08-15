@@ -89,6 +89,12 @@ type EndpointResponse struct {
 	t        *testing.T
 }
 
+func (r *EndpointResponse) AssertResponseContent(content string, t *testing.T) {
+	body, err := ioutil.ReadAll(r.response.Body)
+	util.AssertNoError(err, t)
+	util.AssertEquals(content, string(body), t)
+}
+
 func (er *EndpointResponse) GetHeader(name string) string {
 	return er.response.Header().Get(name)
 }

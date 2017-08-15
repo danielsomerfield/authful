@@ -82,6 +82,10 @@ var tokenStore = oauthsvc.NewInMemoryTokenStore()
 var clientStore = oauthsvc.NewInMemoryClientStore()
 var userRepository = user2.NewInMemoryUserRepository()
 
+var defaultErrorRenderer = func(code string) []byte { //TODO: build full template renderer
+	return []byte(fmt.Sprintf("<html>%s</html>", code))
+}
+
 func currentTimeFn() time.Time {
 	return time.Now()
 }
@@ -94,7 +98,8 @@ func init() {
 		tokenStore.StoreToken,
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/authorize", authorization.NewAuthorizationHandler(clientStore.LookupClient, defaultCodeGenerator))
+	http.HandleFunc("/authorize", authorization.NewAuthorizationHandler(clientStore.LookupClient,
+		defaultCodeGenerator, defaultErrorRenderer))
 	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", client.NewProtectedHandler(

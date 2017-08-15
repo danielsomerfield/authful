@@ -12,8 +12,10 @@ import (
 )
 
 type CodeGenerator func() string
+type ErrorPageRenderer func(error string) []byte
 
-func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeGenerator) func(http.ResponseWriter, *http.Request) {
+func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeGenerator,
+	errorRenderer ErrorPageRenderer) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
@@ -26,10 +28,12 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeG
 			client, _ := clientLookup(authorizationRequest.ClientId)
 			if client == nil {
 				log.Printf("Request for unknown client %s.", authorizationRequest.ClientId)
+				w.Header().Set("Content-type", "text/html")
+				w.Write(errorRenderer("unknown_client"))
 				return
 			}
+			http.Redirect(w, r, appendParam(authorizationRequest.RedirectURI, "code", generator()), http.StatusFound)
 		}
-		http.Redirect(w, r, appendParam(authorizationRequest.RedirectURI, "code", generator()), http.StatusFound)
 
 		//Reject if the redirect_uri doesn't match one configured with the client
 

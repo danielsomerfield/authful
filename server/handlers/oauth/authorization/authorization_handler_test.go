@@ -38,6 +38,10 @@ func MockCodeGenerator() string {
 	return "a-code"
 }
 
+func MockErrorPageRenderer(error string) []byte {
+	return []byte(fmt.Sprintf("<html>%s</html>", error))
+}
+
 func TestAuthorizeHandler_successfulAuthorization(t *testing.T) {
 	responseType := "code"
 	state := "state1"
@@ -46,10 +50,11 @@ func TestAuthorizeHandler_successfulAuthorization(t *testing.T) {
 	requestUrl := fmt.Sprintf("/authorize?client_id=%s&response_type=%s&state=%s&redirect_uri=%s",
 		validClientId, responseType, state, url.QueryEscape(redirectUri))
 
-	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn, MockCodeGenerator), requestUrl).
+	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn, MockCodeGenerator, MockErrorPageRenderer), requestUrl).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
 		response.AssertHttpStatusEquals(302)
 		response.AssertHasHeader("location", t)
+
 		uri, err := url.Parse(response.GetHeader("location"))
 		util.AssertNoError(err, t)
 
@@ -60,26 +65,28 @@ func TestAuthorizeHandler_successfulAuthorization(t *testing.T) {
 		util.AssertNoError(err, t)
 
 		util.AssertEquals("a-code", params.Get("code"), t)
+		util.AssertEquals("", params.Get("error"), t)
 
 		return nil
 	}, t)
 }
 
-//func TestAuthorizeHandler_invalidClient(t *testing.T) {
-//	responseType := "code"
-//	state := "state1"
-//	redirectUri := "https://example.com?redirect"
-//
-//	requestUrl := fmt.Sprintf("/authorize?client_id=%s&response_type=%s&state=%s&redirect_uri=%s",
-//		invalidClientId, responseType, state, url.QueryEscape(redirectUri))
-//
-//	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn), requestUrl).
-//		ThenAssert(func(response *handlers.EndpointResponse) error {
-//		response.AssertHttpStatusEquals(302)
-//		response.AssertHeaderValue("location", redirectUri, t)
-//		return nil
-//	}, t)
-//}
+func TestAuthorizeHandler_invalidClient(t *testing.T) {
+	responseType := "code"
+	state := "state1"
+	redirectUri := "https://example.com/redirect"
+
+	requestUrl := fmt.Sprintf("/authorize?client_id=%s&response_type=%s&state=%s&redirect_uri=%s",
+		invalidClientId, responseType, state, url.QueryEscape(redirectUri))
+
+	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn, MockCodeGenerator, MockErrorPageRenderer), requestUrl).
+		ThenAssert(func(response *handlers.EndpointResponse) error {
+		response.AssertHttpStatusEquals(200)
+		response.AssertHeaderValue("Content-type", "text/html", t)
+		response.AssertResponseContent("<html>unknown_client</html>", t)
+		return nil
+	}, t)
+}
 
 //TODO: bad redirect url
 //TODO: test with no redirect url (redirects to default)
