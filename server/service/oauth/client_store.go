@@ -10,6 +10,11 @@ import (
 type Client interface {
 	CheckSecret(secret string) bool
 	GetScopes() []string
+	IsValidRedirectURI(uri string) bool
+}
+
+func (client DefaultClient) IsValidRedirectURI(uri string) bool {
+	return false
 }
 
 func (c Credentials) String() string {

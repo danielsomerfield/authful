@@ -12,6 +12,7 @@ import (
 var validClientId = "valid-client-id"
 var validClientSecret = "valid-client-secret"
 var invalidClientId = "invalid-client-id"
+var validRedirect = "https://example.com/redirect"
 
 type MockClient struct {
 }
@@ -22,6 +23,10 @@ func (MockClient) CheckSecret(secret string) bool {
 
 func (mc MockClient) GetScopes() []string {
 	return []string{}
+}
+
+func (mc MockClient) IsValidRedirectURI(uri string) bool {
+	return uri == validRedirect
 }
 
 func MockClientLookupFn(clientId string) (oauth.Client, error) {
@@ -81,14 +86,30 @@ func TestAuthorizeHandler_invalidClient(t *testing.T) {
 
 	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn, MockCodeGenerator, MockErrorPageRenderer), requestUrl).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
-		response.AssertHttpStatusEquals(200)
+		response.AssertHttpStatusEquals(200) //TODO: 200? Seems common, but seems wrong.
 		response.AssertHeaderValue("Content-type", "text/html", t)
 		response.AssertResponseContent("<html>unknown_client</html>", t)
 		return nil
 	}, t)
 }
 
-//TODO: bad redirect url
+func TestAuthorizeHandler_badRedirectURL(t *testing.T) {
+	responseType := "code"
+	state := "state1"
+	redirectUri := "https://example.com/badRedirect"
+
+	requestUrl := fmt.Sprintf("/authorize?client_id=%s&response_type=%s&state=%s&redirect_uri=%s",
+		validClientId, responseType, state, url.QueryEscape(redirectUri))
+
+	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn, MockCodeGenerator, MockErrorPageRenderer), requestUrl).
+		ThenAssert(func(response *handlers.EndpointResponse) error {
+		response.AssertHttpStatusEquals(200)
+		response.AssertHeaderValue("Content-type", "text/html", t)
+		response.AssertResponseContent("<html>invalid_redirect_uri</html>", t)
+		return nil
+	}, t)
+}
+
 //TODO: test with no redirect url (redirects to default)
 //TODO: invalid scope for client
 //TODO: invalid request

@@ -51,6 +51,10 @@ func (m MockTokenStore) StoreToken(token string, clientMetaData oauth.TokenMetaD
 	return nil
 }
 
+func (mc MockClient) IsValidRedirectURI(uri string) bool {
+	return true
+}
+
 func LookupClientFn(clientId string) (oauth.Client, error) {
 	if clientId == validClientId {
 		return MockClient{

@@ -22,6 +22,10 @@ func (mc MockClient) GetScopes() []string {
 	return []string{}
 }
 
+func (mc MockClient) IsValidRedirectURI(uri string) bool {
+	return true
+}
+
 func MockClientLookupFn(clientId string) (oauth.Client, error) {
 	if clientId == validClientId {
 		return MockClient{
