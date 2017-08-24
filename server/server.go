@@ -19,14 +19,28 @@ import (
 )
 
 type AuthServer struct {
-	port       int
-	httpServer http.Server
-	running    chan bool
+	port        int
+	httpServer  http.Server
+	running     chan bool
+	tlsCertFile string
+	tlsKeyFile  string
 }
 
-func NewAuthServer(port int) *AuthServer {
+type Config struct {
+	Port int
+	TLS TLSConfig
+}
+
+type TLSConfig struct {
+	TLSCertFile string     `yaml:"cert"`
+	TLSKeyFile  string     `yaml:"key"`
+}
+
+func NewAuthServer(config *Config) *AuthServer {
 	return &AuthServer{
-		port: port,
+		port:        config.Port,
+		tlsCertFile: config.TLS.TLSCertFile,
+		tlsKeyFile:  config.TLS.TLSKeyFile,
 	}
 }
 
@@ -40,7 +54,7 @@ func (server *AuthServer) Start() (*oauthsvc.Credentials, error) {
 
 	go func() {
 		httpServer := http.Server{Addr: fmt.Sprintf(":%v", server.port)}
-		err := httpServer.ListenAndServeTLS("../resources/test/server.crt", "../resources/test/server.key")
+		err := httpServer.ListenAndServeTLS(server.tlsCertFile, server.tlsKeyFile)
 		if err != nil {
 			log.Fatalf("Failed to start up http server %s\n", err)
 		} else {

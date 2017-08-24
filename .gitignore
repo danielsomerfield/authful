@@ -61,4 +61,5 @@ fabric.properties
 
 # Custom
 .idea
-/authful
+authful-osx
+authful-linux-386

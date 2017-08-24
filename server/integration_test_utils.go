@@ -82,7 +82,14 @@ func WaitForServer(server *AuthServer) error {
 }
 
 func RunServer() (*AuthServer, *oauth_service.Credentials, error) {
-	authServer := NewAuthServer(8081)
+
+	authServer := NewAuthServer(&Config{
+		Port: 8081,
+		TLS: TLSConfig{
+			TLSCertFile: "../resources/test/server.crt",
+			TLSKeyFile: "../resources/test/server.key",
+		},
+	})
 
 	var credentials *oauth_service.Credentials
 	credentials, err := authServer.Start()
