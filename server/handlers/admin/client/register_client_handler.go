@@ -26,7 +26,8 @@ func NewRegisterClientHandler(
 			handlers.InvalidRequest("Failed to parse request to register client", w)
 			return
 		} else {
-			credentials, err := registerClientFn(registerClientRequest.Name, registerClientRequest.Scopes, registerClientRequest.RedirectUris)
+			credentials, err := registerClientFn(registerClientRequest.Name, registerClientRequest.Scopes,
+				registerClientRequest.RedirectUris, registerClientRequest.DefaultRedirectURI)
 			if err == nil {
 				bytes, err := json.Marshal(wire.ResponseEnvelope{
 					Data: RegisterClientResponse{
@@ -68,6 +69,7 @@ type RegisterClientCommand struct {
 	Name         string    `json:"name,omitempty"`
 	Scopes       []string `json:"scopes,omitempty"`
 	RedirectUris []string `json:"redirect_uris,omitempty"`
+	DefaultRedirectURI string `json:"default_redirect_uri,omitempty"`
 }
 
 type RegisterClientResponse struct {

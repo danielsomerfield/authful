@@ -13,12 +13,17 @@ var validClientId = "valid-client-id"
 var validClientSecret = "valid-client-secret"
 var invalidClientId = "invalid-client-id"
 var validRedirect = "https://example.com/redirect"
+var defaultRedirect = "https://example.com/defaultRedirect"
 
 type MockClient struct {
 }
 
 func (MockClient) CheckSecret(secret string) bool {
 	return secret == validClientSecret
+}
+
+func (mc MockClient) GetDefaultRedirectURI() string {
+	return defaultRedirect
 }
 
 func (mc MockClient) GetScopes() []string {
@@ -110,7 +115,34 @@ func TestAuthorizeHandler_badRedirectURL(t *testing.T) {
 	}, t)
 }
 
-//TODO: test with no redirect url (redirects to default)
+func TestAuthorizeHandler_noRedirectURL(t *testing.T) {
+	responseType := "code"
+	state := "state1"
+
+	requestUrl := fmt.Sprintf("/authorize?client_id=%s&response_type=%s&state=%s",
+		validClientId, responseType, state)
+
+	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn, MockCodeGenerator, MockErrorPageRenderer), requestUrl).
+		ThenAssert(func(response *handlers.EndpointResponse) error {
+		response.AssertHttpStatusEquals(302)
+		response.AssertHasHeader("location", t)
+
+		uri, err := url.Parse(response.GetHeader("location"))
+		util.AssertNoError(err, t)
+
+		withoutQuery := fmt.Sprintf("%s://%s%s", uri.Scheme, uri.Host, uri.Path)
+		util.AssertEquals("https://example.com/defaultRedirect", withoutQuery, t)
+
+		params, err := url.ParseQuery(uri.RawQuery)
+		util.AssertNoError(err, t)
+
+		util.AssertEquals("a-code", params.Get("code"), t)
+		util.AssertEquals("", params.Get("error"), t)
+
+		return nil
+	}, t)
+}
+
 //TODO: invalid scope for client
 //TODO: invalid request
 //TODO: test for redirect uri with a ? already

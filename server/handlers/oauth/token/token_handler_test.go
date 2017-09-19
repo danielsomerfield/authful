@@ -30,6 +30,10 @@ func (mc MockClient) GetScopes() []string {
 	return mc.scope
 }
 
+func (mc MockClient) GetDefaultRedirectURI() string {
+	return ""
+}
+
 func mockTokenGenerator() string {
 	return "mock-token"
 }

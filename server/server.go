@@ -67,7 +67,7 @@ func (server *AuthServer) Start() (*oauthsvc.Credentials, error) {
 
 	//TODO: make generation of startup credentials a configuration option
 
-	return clientStore.RegisterClient("Root Admin", []string{"administrate", "introspect"}, nil)
+	return clientStore.RegisterClient("Root Admin", []string{"administrate", "introspect"}, nil, "")
 
 }
 

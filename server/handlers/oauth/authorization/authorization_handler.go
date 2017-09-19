@@ -33,17 +33,22 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeG
 				return
 			}
 
-			if !client.IsValidRedirectURI(authorizationRequest.RedirectURI) {
+			var redirectURI string
+			if authorizationRequest.RedirectURI == "" {
+				redirectURI = client.GetDefaultRedirectURI()
+			} else if client.IsValidRedirectURI(authorizationRequest.RedirectURI) {
+				redirectURI = authorizationRequest.RedirectURI
+			}
+
+			if redirectURI == "" {
 				log.Printf("Request with invalid redirect uri %s.", authorizationRequest.RedirectURI)
 				w.Header().Set("Content-type", "text/html")
 				w.Write(errorRenderer("invalid_redirect_uri"))
 				return
+			} else {
+				http.Redirect(w, r, appendParam(redirectURI, "code", generator()), http.StatusFound)
 			}
-
-			http.Redirect(w, r, appendParam(authorizationRequest.RedirectURI, "code", generator()), http.StatusFound)
 		}
-
-		//Reject if the redirect_uri doesn't match one configured with the client
 
 		//Check scopes
 		//Redirect to error if there is a scope in the request that's not in the client

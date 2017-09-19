@@ -11,10 +11,16 @@ type Client interface {
 	CheckSecret(secret string) bool
 	GetScopes() []string
 	IsValidRedirectURI(uri string) bool
+	GetDefaultRedirectURI() string
 }
 
+//TODO: implement these two functions
 func (client DefaultClient) IsValidRedirectURI(uri string) bool {
 	return false
+}
+
+func (client DefaultClient) GetDefaultRedirectURI() string {
+	return ""
 }
 
 func (c Credentials) String() string {
@@ -28,7 +34,7 @@ type Credentials struct {
 }
 
 type ClientLookupFn func(clientId string) (Client, error)
-type RegisterClientFn func(name string, scopes []string, urls [] string) (*Credentials, error)
+type RegisterClientFn func(name string, scopes []string, urls [] string, defaultRedirectURI string) (*Credentials, error)
 
 type inMemoryClientStore struct {
 	clients map[string]DefaultClient
@@ -44,15 +50,17 @@ func (store inMemoryClientStore) LookupClient(clientId string) (Client, error) {
 	return store.clients[clientId], nil
 }
 
-func (store inMemoryClientStore) RegisterClient(name string, scopes []string, redirectUris []string) (*Credentials, error) {
+func (store inMemoryClientStore) RegisterClient(name string, scopes []string, redirectUris []string,
+	defaultRedirectURI string) (*Credentials, error) {
 	clientId := util.GenerateRandomString(30)
 	secret := util.GenerateRandomString(60) //TODO: replace with hash storage
 	store.clients[clientId] = DefaultClient{
-		name:     name,
-		clientId: clientId,
-		secret:   secret,
-		scopes:   scopes,
-		redirectUris: redirectUris,
+		name:               name,
+		clientId:           clientId,
+		secret:             secret,
+		scopes:             scopes,
+		redirectUris:       redirectUris,
+		defaultRedirectURI: defaultRedirectURI,
 	}
 	return &Credentials{
 		ClientId:     clientId,
@@ -61,11 +69,12 @@ func (store inMemoryClientStore) RegisterClient(name string, scopes []string, re
 }
 
 type DefaultClient struct {
-	name     string
-	clientId string
-	secret   string //TODO: replace this with a hash
-	scopes   []string
-	redirectUris [] string
+	name               string
+	clientId           string
+	secret             string //TODO: replace this with a hash
+	scopes             []string
+	redirectUris       [] string
+	defaultRedirectURI string
 }
 
 func (client DefaultClient) GetScopes() []string {

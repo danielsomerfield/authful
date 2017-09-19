@@ -26,6 +26,10 @@ func (mc MockClient) IsValidRedirectURI(uri string) bool {
 	return true
 }
 
+func (mc MockClient) GetDefaultRedirectURI() string {
+	return ""
+}
+
 func MockClientLookupFn(clientId string) (oauth.Client, error) {
 	if clientId == validClientId {
 		return MockClient{

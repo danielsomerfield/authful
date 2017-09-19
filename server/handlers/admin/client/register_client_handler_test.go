@@ -15,19 +15,22 @@ type registeredClient struct {
 	name         string
 	scopes       []string
 	redirectUris []string
+	defaultRedirectUri string
 }
 
 var registeredClients = map[string]registeredClient{}
 
-var mockRegisterClientFn = func(name string, scopes []string, redirectUris []string) (*oauth.Credentials, error) {
+var mockRegisterClientFn = func(name string, scopes []string, redirectUris []string,
+	defaultRedirectUri string) (*oauth.Credentials, error) {
 	clientId := name + "-id"
 	clientSecret := name + "-secret"
 	registeredClients[clientId] = registeredClient{
-		clientId:     clientId,
-		clientSecret: clientSecret,
-		name:         name,
-		scopes:       scopes,
-		redirectUris: redirectUris,
+		clientId:           clientId,
+		clientSecret:       clientSecret,
+		name:               name,
+		scopes:             scopes,
+		redirectUris:       redirectUris,
+		defaultRedirectUri: defaultRedirectUri,
 	}
 	return &oauth.Credentials{
 		ClientId:     clientId,
@@ -149,3 +152,4 @@ func TestRegisterClientHandler_registerReturnsErrorWithNoProvidedName(t *testing
 }
 
 //Test that registering the same client twice fails
+//Test that registering without redirect URI fails
