@@ -1,4 +1,4 @@
-package client
+package main
 
 import (
 	"github.com/danielsomerfield/authful/client/admin"
@@ -22,10 +22,16 @@ func main() {
 				clientRegistration.Data.ClientId, "https://webapp/callback", "read", state), 302)
 		} else {
 			//Got the cookie, now make the request
-
+			invalidRequest, _ := http.NewRequest("GET", "https://resource-server:8080/", nil)
+			invalidRequest.Header.Set("Authorization", "Bearer 12345")
+			//resp, err = CreateHttpsClient().Do(invalidRequest)
 		}
 	})
 
+}
+
+func CreateHttpsClient() *http.Client {
+	return nil
 }
 
 func register() *admin.ClientRegistration {

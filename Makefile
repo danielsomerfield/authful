@@ -10,7 +10,9 @@ install_deps:
 	go get golang.org/x/crypto/scrypt
 	go get gopkg.in/yaml.v2
 
-test: install_deps
+test: test-only
+
+test-only:
 	go test ./...
 
 clean:
