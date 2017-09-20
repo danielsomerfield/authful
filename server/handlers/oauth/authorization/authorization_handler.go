@@ -3,8 +3,6 @@ package authorization
 import (
 	"net/http"
 	"github.com/danielsomerfield/authful/server/wire/oauth"
-	oauth_handlers "github.com/danielsomerfield/authful/server/handlers/oauth"
-
 	oauth2 "github.com/danielsomerfield/authful/server/service/oauth"
 	"log"
 	"fmt"
@@ -23,8 +21,8 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeG
 
 		authorizationRequest, err := oauth.ParseAuthorizeRequest(*r)
 		if err != nil {
-			log.Printf("Invalid authorization request due to error: %+v", err)
-			oauth_handlers.InvalidRequest(err.Error(), w) //TODO: make this a redirect to error endpoint
+			log.Printf("Invalid request from client %+v.", err)
+			writeROError("invalid_request", w, errorRenderer)
 			return
 		} else {
 			client, _ := clientLookup(authorizationRequest.ClientId)
@@ -53,11 +51,17 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeG
 				writeROError("invalid_redirect_uri", w, errorRenderer)
 				return
 			} else {
-				http.Redirect(w, r, appendParam(redirectURI, "code", generator()), http.StatusFound)
+				uri, err := appendParam(redirectURI, "code", generator())
+				if err == nil {
+					http.Redirect(w, r, uri, http.StatusFound)
+				} else {
+					//TODO: refactor this so it doesn't check twice
+					log.Printf("Request with invalid redirect uri %s.", authorizationRequest.RedirectURI)
+					writeROError("invalid_redirect_uri", w, errorRenderer)
+					return
+				}
 			}
 		}
-
-		//Redirect to error if there is a scope in the request that's not in the client
 
 		//Authenticate RO and ask for approval of request
 	}
@@ -68,6 +72,13 @@ func writeROError(errorCode string, w http.ResponseWriter, errorRenderer ErrorPa
 	w.Write(errorRenderer(errorCode))
 }
 
-func appendParam(uri string, paramName string, paramValue string) string {
-	return fmt.Sprintf("%s?%s=%s", uri, url.QueryEscape(paramName), url.QueryEscape(paramValue))
+func appendParam(uri string, paramName string, paramValue string) (string, error) {
+	redirectUri, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return "", err
+	} else if redirectUri.RawQuery != "" {
+		return fmt.Sprintf("%s&%s=%s", uri, url.QueryEscape(paramName), url.QueryEscape(paramValue)), nil
+	} else {
+		return fmt.Sprintf("%s?%s=%s", uri, url.QueryEscape(paramName), url.QueryEscape(paramValue)), nil
+	}
 }
