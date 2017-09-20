@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	oauth_handlers "github.com/danielsomerfield/authful/server/handlers/oauth"
+	"github.com/danielsomerfield/authful/common/util"
 )
 
 type CurrentTimeFn func() time.Time
@@ -65,7 +66,7 @@ func TokenHandler(w http.ResponseWriter,
 	if tokenRequest.GrantType == "client_credentials" {
 
 		requestedScopes := strings.Fields(tokenRequest.Scope)
-		unknownScopes := elementsNotIn(requestedScopes, client.GetScopes())
+		unknownScopes := util.ElementsNotIn(requestedScopes, client.GetScopes())
 		if len(unknownScopes) > 0 {
 			log.Printf("Request contained unexpected scopes: %+v", unknownScopes)
 			oauth_handlers.JsonOAuthError("invalid_scope", "a requested was unknown", "",
@@ -93,25 +94,4 @@ func TokenHandler(w http.ResponseWriter,
 		oauth_handlers.JsonOAuthError("unsupported_grant_type", "the grant type was missing or unknown", "",
 			http.StatusBadRequest, w)
 	}
-}
-
-func elementsNotIn(array []string, knownElements []string) []string {
-	extraElements := []string{}
-
-	for _, element := range array {
-		if !contains(knownElements, element) {
-			extraElements = append(extraElements, element)
-		}
-	}
-
-	return extraElements
-}
-
-func contains(array []string, element string) bool {
-	for _, e := range array {
-		if element == e {
-			return true;
-		}
-	}
-	return false
 }
