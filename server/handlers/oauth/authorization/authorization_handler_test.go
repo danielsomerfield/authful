@@ -143,6 +143,23 @@ func TestAuthorizeHandler_noRedirectURL(t *testing.T) {
 	}, t)
 }
 
-//TODO: invalid scope for client
+func TestAuthorizeHandler_invalidScopesRequested(t *testing.T) {
+	responseType := "code"
+	state := "state1"
+	redirectUri := "https://example.com/redirect"
+	scope := "invalid-scope"
+
+	requestUrl := fmt.Sprintf("/authorize?client_id=%s&response_type=%s&state=%s&redirect_uri=%s&scope=%s",
+		validClientId, responseType, state, url.QueryEscape(redirectUri), scope)
+
+	handlers.DoGetEndpointRequest(NewAuthorizationHandler(MockClientLookupFn, MockCodeGenerator, MockErrorPageRenderer), requestUrl).
+		ThenAssert(func(response *handlers.EndpointResponse) error {
+		response.AssertHttpStatusEquals(200)
+		response.AssertHeaderValue("Content-type", "text/html", t)
+		response.AssertResponseContent("<html>invalid_scope</html>", t)
+		return nil
+	}, t)
+}
+
 //TODO: invalid request
 //TODO: test for redirect uri with a ? already

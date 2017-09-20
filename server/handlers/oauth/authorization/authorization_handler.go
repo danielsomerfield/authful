@@ -9,6 +9,7 @@ import (
 	"log"
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 type CodeGenerator func() string
@@ -33,6 +34,15 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeG
 				return
 			}
 
+			scopes := strings.Fields(authorizationRequest.Scope)
+			unknownScopes := elementsNotIn(scopes, client.GetScopes())
+			if len(unknownScopes) > 0 {
+				log.Printf("Request with invalid scope(s) %+v.", unknownScopes)
+				w.Header().Set("Content-type", "text/html")
+				w.Write(errorRenderer("invalid_scope"))
+				return
+			}
+
 			var redirectURI string
 			if authorizationRequest.RedirectURI == "" {
 				redirectURI = client.GetDefaultRedirectURI()
@@ -50,11 +60,32 @@ func NewAuthorizationHandler(clientLookup oauth2.ClientLookupFn, generator CodeG
 			}
 		}
 
-		//Check scopes
 		//Redirect to error if there is a scope in the request that's not in the client
 
 		//Authenticate RO and ask for approval of request
 	}
+}
+
+//TODO: refactor out
+func elementsNotIn(array []string, knownElements []string) []string {
+	extraElements := []string{}
+
+	for _, element := range array {
+		if !contains(knownElements, element) {
+			extraElements = append(extraElements, element)
+		}
+	}
+
+	return extraElements
+}
+
+func contains(array []string, element string) bool {
+	for _, e := range array {
+		if element == e {
+			return true;
+		}
+	}
+	return false
 }
 
 func appendParam(uri string, paramName string, paramValue string) string {
