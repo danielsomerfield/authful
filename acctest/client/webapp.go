@@ -44,7 +44,11 @@ func register() *admin.ClientRegistration {
 	if err != nil {
 		log.Fatalf("Failed to get api client")
 	}
-	client, err := apiClient.RegisterClient("webapp")
+	client, err := apiClient.RegisterClient("webapp",
+		[]string{},
+		[]string{},
+		"")
+
 	if err != nil {
 		log.Fatalf("Failed to get api client")
 	}

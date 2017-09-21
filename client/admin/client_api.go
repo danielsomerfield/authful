@@ -15,14 +15,14 @@ import (
 
 type ClientRegistration struct {
 	Data struct {
-		ClientId     string  `json:"clientId,omitempty"`
-		ClientSecret string  `json:"clientSecret,omitempty"`
+		ClientId     string `json:"clientId,omitempty"`
+		ClientSecret string `json:"clientSecret,omitempty"`
 	} `json:"data,omitempty"`
 }
 
 type ClientError struct {
-	Type    string  `json:"errorType,omitempty"`
-	Message string  `json:"errorMessage,omitempty"`
+	Type    string `json:"errorType,omitempty"`
+	Message string `json:"errorMessage,omitempty"`
 }
 
 func (ce ClientError) Error() string {
@@ -65,13 +65,20 @@ func NewAPIClient(host string, clientId string, clientSecret string, caCertFiles
 	}, nil
 }
 
-func (apiClient *APIClient) RegisterClient(clientName string) (*ClientRegistration, error) {
+func (apiClient *APIClient) RegisterClient(
+	clientName string,
+	scopes []string,
+	redirectUris []string,
+	defaultRedirectURI string) (*ClientRegistration, error) {
 	credentials := base64.StdEncoding.EncodeToString([]byte(
 		fmt.Sprintf("%s:%s", url.QueryEscape(apiClient.clientId), url.QueryEscape(apiClient.clientSecret))))
 
 	createClientRequest := map[string]interface{}{
-		"command": map[string]string{
+		"command": map[string]interface{}{
 			"name": clientName,
+			"scopes": scopes,
+			"redirect_uris": redirectUris,
+			"default_redirect_uri": defaultRedirectURI,
 		},
 	}
 	messageBytes, _ := json.Marshal(createClientRequest)

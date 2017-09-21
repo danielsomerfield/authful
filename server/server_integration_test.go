@@ -20,13 +20,19 @@ import (
 )
 
 func TestAuthorize(t *testing.T) {
+	scope := "scope1"
+	redirectURI := "https://localhost:8181/ping"
 
 	_, err := requestAdminToken(*creds)
 	util.AssertNoError(err, t)
 
 	//Register a client and get back client id and secret
 	apiClient := createAPIClient(t)
-	registration, err := apiClient.RegisterClient("test-authorize")
+	registration, err := apiClient.RegisterClient(
+		"test-authorize",
+		[]string{scope},
+		[]string{redirectURI},
+		"")
 	util.AssertNoError(err, t)
 	util.AssertNotNil(registration, t)
 
@@ -34,33 +40,24 @@ func TestAuthorize(t *testing.T) {
 	_, err = apiClient.RegisterUser("username-1", "password-1", []string{"username-password"})
 	util.AssertNoError(err, t)
 
-	redirectURI := url.QueryEscape("https://localhost:8181/ping")
-	scope := "scope1"
 	state := util.GenerateRandomString(5)
 
 	//Hit the authorization endpoint
 	httpsClient := CreateHttpsClient()
 	authorizeUrl := fmt.Sprintf(
 		"https://localhost:8081/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s",
-		registration.Data.ClientId, redirectURI, scope, state)
+		registration.Data.ClientId, url.QueryEscape(redirectURI), scope, state)
 	resp, err := httpsClient.Get(authorizeUrl)
 	util.AssertNoError(err, t)
 
+	body, err := ioutil.ReadAll(resp.Body)
+	if err == nil {
+		print(string(body))
+	}
+
+	//TODO: make sure this is actually the login endpoint
 	util.AssertStatusCode(resp, 200, t)
 
-	////Ensure that the user is authenticated and prompted for approval
-	//if err == nil {
-	//	if resp.StatusCode == 200 {
-	//		body, err = ioutil.ReadAll(resp.Body)
-	//		if err == nil {
-	//			print(string(body))
-	//		}
-	//	} else {
-	//		t.Errorf("Expected status code 200 but was %s", resp.StatusCode)
-	//	}
-	//} else {
-	//
-	//}
 }
 
 func TestClientCredentialsEnd2End(t *testing.T) {
@@ -102,7 +99,11 @@ func TestScopeRequirements(t *testing.T) {
 	apiClient := createAPIClient(t)
 
 	//Register a client with no scopes using admin credentials
-	registration, err := apiClient.RegisterClient("test-client")
+	registration, err := apiClient.RegisterClient(
+		"test-client",
+		[]string{},
+		[]string{},
+		"")
 	util.AssertNoError(err, t)
 	util.AssertNotNil(registration, t)
 
@@ -115,7 +116,11 @@ func TestScopeRequirements(t *testing.T) {
 	)
 	util.AssertNoError(err, t)
 
-	_, err = apiClientInsufficientCreds.RegisterClient("test-client-2")
+	_, err = apiClientInsufficientCreds.RegisterClient(
+		"test-client-2",
+		[]string{},
+		[]string{},
+		"")
 	util.AssertNotNil(err, t)
 	util.AssertTrue(err.(admin.ClientError).ErrorType() == "invalid_client", "Expected to equal \"invalid_client\"", t)
 }

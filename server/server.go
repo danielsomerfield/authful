@@ -132,4 +132,8 @@ func init() {
 	http.HandleFunc("/admin/users", adminuser.NewProtectedHandler(
 		usersvc.NewRegisterUserFn(userRepository.SaveUser, crypto.ScryptHash), clientStore.LookupClient))
 
+	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+
+	})
+
 }
