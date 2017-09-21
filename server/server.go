@@ -16,6 +16,8 @@ import (
 	usersvc "github.com/danielsomerfield/authful/server/service/admin/user"
 	user2 "github.com/danielsomerfield/authful/server/repository/user"
 	"github.com/danielsomerfield/authful/server/service/crypto"
+	"github.com/danielsomerfield/authful/server/wire/oauth"
+	"net/url"
 )
 
 type AuthServer struct {
@@ -96,6 +98,15 @@ var tokenStore = oauthsvc.NewInMemoryTokenStore()
 var clientStore = oauthsvc.NewInMemoryClientStore()
 var userRepository = user2.NewInMemoryUserRepository()
 
+var approvalRequestStore = func(request *oauth.AuthorizeRequest) string {
+	return util.GenerateRandomString(6)
+}
+
+var approvalLookup = func(approvalType string, requestId string) *url.URL {
+	u, _ := url.Parse("/login")
+	return u
+}
+
 var defaultErrorRenderer = func(code string) []byte { //TODO: build full template renderer
 	return []byte(fmt.Sprintf("<html>%s</html>", code))
 }
@@ -113,7 +124,7 @@ func init() {
 		currentTimeFn))
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/authorize", authorization.NewAuthorizationHandler(clientStore.LookupClient,
-		defaultCodeGenerator, defaultErrorRenderer))
+		defaultErrorRenderer, approvalRequestStore, approvalLookup))
 	http.HandleFunc("/introspect", introspection.NewIntrospectionHandler(
 		accesscontrol.NewClientAccessControlFnWithScopes(clientStore.LookupClient, "introspect"), tokenStore.GetToken))
 	http.HandleFunc("/admin/clients", client.NewProtectedHandler(
