@@ -9,6 +9,7 @@ install_deps:
 	go get golang.org/x/oauth2
 	go get golang.org/x/crypto/scrypt
 	go get gopkg.in/yaml.v2
+	go get github.com/PuerkitoBio/goquery
 
 test: test-only
 

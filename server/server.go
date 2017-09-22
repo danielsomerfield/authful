@@ -133,7 +133,7 @@ func init() {
 		usersvc.NewRegisterUserFn(userRepository.SaveUser, crypto.ScryptHash), clientStore.LookupClient))
 
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-
+		w.Write([]byte("<html><head><title class='title'>Login</title></head><body></body></html>"))
 	})
 
 }

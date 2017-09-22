@@ -17,6 +17,7 @@ import (
 	"golang.org/x/oauth2"
 	"github.com/danielsomerfield/authful/client/admin"
 	"net/url"
+	"github.com/PuerkitoBio/goquery"
 )
 
 func TestAuthorize(t *testing.T) {
@@ -50,14 +51,17 @@ func TestAuthorize(t *testing.T) {
 	resp, err := httpsClient.Get(authorizeUrl)
 	util.AssertNoError(err, t)
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err == nil {
-		print(string(body))
-	}
-
-	//TODO: make sure this is actually the login endpoint
 	util.AssertStatusCode(resp, 200, t)
+	util.AssertTrue(isLoginPage(resp), "Login page", t)
+}
 
+func isLoginPage(r *http.Response) bool {
+	doc, err := goquery.NewDocumentFromResponse(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	title := doc.Find("title")
+	return "Login" == title.Text()
 }
 
 func TestClientCredentialsEnd2End(t *testing.T) {
