@@ -4,7 +4,7 @@ import (
 	"testing"
 	"encoding/json"
 	"github.com/danielsomerfield/authful/server/handlers"
-	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/common/util"
 	"fmt"
 	"github.com/danielsomerfield/authful/server/service/admin/user"
 	"errors"

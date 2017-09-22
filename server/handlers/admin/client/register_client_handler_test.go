@@ -6,7 +6,7 @@ import (
 	"testing"
 	"github.com/danielsomerfield/authful/server/service/oauth"
 	"reflect"
-	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/common/util"
 )
 
 type registeredClient struct {

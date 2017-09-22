@@ -13,7 +13,7 @@ import (
 	oauth_wire "github.com/danielsomerfield/authful/server/wire/oauth"
 	"os"
 	"log"
-	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/common/util"
 	"golang.org/x/oauth2"
 	"github.com/danielsomerfield/authful/client/admin"
 	"net/url"

@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"encoding/base64"
-	"github.com/danielsomerfield/authful/util"
-	util2 "github.com/danielsomerfield/authful/common/util"
+	util "github.com/danielsomerfield/authful/common/util"
 )
 
 type Client interface {
@@ -17,7 +16,7 @@ type Client interface {
 
 //TODO: implement these two functions
 func (client DefaultClient) IsValidRedirectURI(uri string) bool {
-	return util2.Contains(client.redirectUris, uri)
+	return util.Contains(client.redirectUris, uri)
 }
 
 func (client DefaultClient) GetDefaultRedirectURI() string {

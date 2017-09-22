@@ -6,7 +6,7 @@ import (
 	"log"
 	oauthsvc "github.com/danielsomerfield/authful/server/service/oauth"
 	"time"
-	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/common/util"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/token"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/authorization"
 	"github.com/danielsomerfield/authful/server/handlers/oauth/introspection"

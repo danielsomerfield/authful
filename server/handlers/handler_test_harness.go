@@ -8,7 +8,7 @@ import (
 	"testing"
 	"net/http"
 	"encoding/json"
-	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/common/util"
 	"fmt"
 )
 

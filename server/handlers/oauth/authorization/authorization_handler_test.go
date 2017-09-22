@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"github.com/danielsomerfield/authful/server/service/oauth"
-	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/common/util"
 	util2 "github.com/danielsomerfield/authful/common/util"
 	oauth2 "github.com/danielsomerfield/authful/server/wire/oauth"
 	"os"

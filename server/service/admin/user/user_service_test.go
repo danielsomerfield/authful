@@ -3,7 +3,7 @@ package user
 import (
 	"testing"
 	userrepo "github.com/danielsomerfield/authful/server/repository/user"
-	"github.com/danielsomerfield/authful/util"
+	"github.com/danielsomerfield/authful/common/util"
 )
 
 //Duplicate username fails
@@ -20,7 +20,7 @@ func mockHashFn(pwd string) string {
 	reversed := make([]rune, len(pwd))
 	strsize := len(pwd)
 	for i, r := range pwd {
-		reversed[strsize- (i + 1)] = r
+		reversed[strsize-(i+1)] = r
 	}
 
 	return string(reversed)

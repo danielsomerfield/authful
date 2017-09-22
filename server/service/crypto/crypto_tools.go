@@ -1,6 +1,6 @@
 package crypto
 
-import "github.com/danielsomerfield/authful/util"
+import "github.com/danielsomerfield/authful/common/util"
 import (
 	"golang.org/x/crypto/scrypt"
 	"log"
