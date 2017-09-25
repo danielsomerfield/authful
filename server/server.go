@@ -18,6 +18,7 @@ import (
 	"github.com/danielsomerfield/authful/server/service/crypto"
 	"github.com/danielsomerfield/authful/server/wire/oauth"
 	"net/url"
+	"github.com/danielsomerfield/authful/server/handlers/login"
 )
 
 type AuthServer struct {
@@ -132,8 +133,6 @@ func init() {
 	http.HandleFunc("/admin/users", adminuser.NewProtectedHandler(
 		usersvc.NewRegisterUserFn(userRepository.SaveUser, crypto.ScryptHash), clientStore.LookupClient))
 
-	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("<html><head><title class='title'>Login</title></head><body></body></html>"))
-	})
+	http.HandleFunc("/login", login.NewLoginHandler())
 
 }

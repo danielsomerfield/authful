@@ -52,16 +52,18 @@ func TestAuthorize(t *testing.T) {
 	util.AssertNoError(err, t)
 
 	util.AssertStatusCode(resp, 200, t)
-	util.AssertTrue(isLoginPage(resp), "Login page", t)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	util.AssertTrue(isLoginPage(string(body)), "Login page", t)
 }
 
-func isLoginPage(r *http.Response) bool {
-	doc, err := goquery.NewDocumentFromResponse(r)
+func isLoginPage(r string) bool {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(r))
 	if err != nil {
 		log.Fatal(err)
 	}
-	title := doc.Find("title")
-	return "Login" == title.Text()
+	title := doc.Find("title").Text()
+	return "Login" == title
 }
 
 func TestClientCredentialsEnd2End(t *testing.T) {
