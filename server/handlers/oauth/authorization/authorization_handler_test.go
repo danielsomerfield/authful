@@ -10,6 +10,7 @@ import (
 	util2 "github.com/danielsomerfield/authful/common/util"
 	oauth2 "github.com/danielsomerfield/authful/server/wire/oauth"
 	"os"
+	"net/http"
 )
 
 var validClientId = "valid-client-id"
@@ -59,9 +60,10 @@ func mockApprovalRequestStore(request *oauth2.AuthorizeRequest) string {
 	return "random-request-id"
 }
 
-func mockApprovalLookup(approvalType string, requestId string) *url.URL {
-	url, _ := url.Parse(fmt.Sprintf("https://%s?requestId=%s", approvalType, requestId))
-	return url
+func mockApprovalLookup(approvalType string, requestId string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf("approvalType = %s, requestId = %s", approvalType, requestId)))
+	}
 }
 
 var handler = NewAuthorizationHandler(
@@ -81,20 +83,9 @@ func TestAuthorizeHandler_successfulAuthorization(t *testing.T) {
 
 	handlers.DoGetEndpointRequest(handler, requestUrl).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
-		response.AssertHttpStatusEquals(302)
-		response.AssertHasHeader("location", t)
+		response.AssertHttpStatusEquals(200)
 
-		uri, err := url.Parse(response.GetHeader("location"))
-		util.AssertNoError(err, t)
-
-		withoutQuery := fmt.Sprintf("%s://%s%s", uri.Scheme, uri.Host, uri.Path)
-		util.AssertEquals("https://username-password", withoutQuery, t)
-
-		params, err := url.ParseQuery(uri.RawQuery)
-		util.AssertNoError(err, t)
-
-		util.AssertEquals("random-request-id", params.Get("requestId"), t)
-		util.AssertEquals("", params.Get("error"), t)
+		response.AssertResponseContent("approvalType = username-password, requestId = random-request-id", t)
 
 		expectedRequest := oauth2.AuthorizeRequest{
 			ResponseType: "code",
@@ -153,20 +144,9 @@ func TestAuthorizeHandler_noRedirectURL(t *testing.T) {
 
 	handlers.DoGetEndpointRequest(handler, requestUrl).
 		ThenAssert(func(response *handlers.EndpointResponse) error {
-		response.AssertHttpStatusEquals(302)
-		response.AssertHasHeader("location", t)
+		response.AssertHttpStatusEquals(200)
 
-		uri, err := url.Parse(response.GetHeader("location"))
-		util.AssertNoError(err, t)
-
-		withoutQuery := fmt.Sprintf("%s://%s%s", uri.Scheme, uri.Host, uri.Path)
-		util.AssertEquals("https://username-password", withoutQuery, t)
-
-		params, err := url.ParseQuery(uri.RawQuery)
-		util.AssertNoError(err, t)
-
-		util.AssertEquals("random-request-id", params.Get("requestId"), t)
-		util.AssertEquals("", params.Get("error"), t)
+		response.AssertResponseContent("approvalType = username-password, requestId = random-request-id", t)
 
 		expectedRequest := oauth2.AuthorizeRequest{
 			ResponseType: "code",

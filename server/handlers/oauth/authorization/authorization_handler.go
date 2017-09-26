@@ -14,7 +14,7 @@ import (
 type CodeGenerator func() string
 type ErrorPageRenderer func(error string) []byte
 type ApprovalRequestStore func(request *oauth.AuthorizeRequest) string
-type ApprovalLookup func(approvalType string, requestId string) *url.URL
+type ApprovalLookup func(approvalType string, requestId string) http.HandlerFunc
 
 func NewAuthorizationHandler(
 	clientLookup oauth2.ClientLookupFn,
@@ -59,8 +59,9 @@ func NewAuthorizationHandler(
 				if err == nil {
 					populateDefaultUri(authorizationRequest, client)
 					requestId := approvalRequestStore(authorizationRequest)
-					loginRedirect := approvalLookup("username-password", requestId)
-					http.Redirect(w, r, loginRedirect.String(), http.StatusFound)
+					handler := approvalLookup("username-password", requestId)
+					handler(w, r)
+					//http.Redirect(w, r, loginRedirect.String(), http.StatusFound)
 				} else {
 					//TODO: refactor this so it doesn't check twice
 					log.Printf("Request with invalid redirect uri %s.", authorizationRequest.RedirectURI)

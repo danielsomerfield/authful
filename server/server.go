@@ -17,7 +17,6 @@ import (
 	user2 "github.com/danielsomerfield/authful/server/repository/user"
 	"github.com/danielsomerfield/authful/server/service/crypto"
 	"github.com/danielsomerfield/authful/server/wire/oauth"
-	"net/url"
 	"github.com/danielsomerfield/authful/server/handlers/login"
 )
 
@@ -103,9 +102,9 @@ var approvalRequestStore = func(request *oauth.AuthorizeRequest) string {
 	return util.GenerateRandomString(6)
 }
 
-var approvalLookup = func(approvalType string, requestId string) *url.URL {
-	u, _ := url.Parse("/login")
-	return u
+var loginHandler = login.NewLoginHandler()
+var approvalLookup = func(approvalType string, requestId string) http.HandlerFunc {
+	return loginHandler
 }
 
 var defaultErrorRenderer = func(code string) []byte { //TODO: build full template renderer
